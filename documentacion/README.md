@@ -11,6 +11,7 @@
 
 | Documento | Descripción |
 |-----------|-------------|
+| [00-resumen-ejecutivo.md](./00-resumen-ejecutivo.md) | Resumen ejecutivo del proyecto |
 | [01-arquitectura.md](./01-arquitectura.md) | Arquitectura del sistema y estructura de carpetas |
 | [02-base-de-datos.md](./02-base-de-datos.md) | Esquema de base de datos, tablas y relaciones |
 | [03-api-endpoints.md](./03-api-endpoints.md) | Documentación completa de la API REST |
