@@ -18,6 +18,8 @@
 | [05-roles-permisos.md](./05-roles-permisos.md) | Sistema de roles y permisos |
 | [06-instalacion.md](./06-instalacion.md) | Guía de instalación paso a paso |
 | [07-frontend.md](./07-frontend.md) | Estructura del frontend y vistas por rol |
+| [08-diagramas.md](./08-diagramas.md) | Diagramas de arquitectura, ER y flujos de datos |
+| [09-pruebas.md](./09-pruebas.md) | Plan de pruebas, casos de uso y validación |
 
 ### Manuales de Usuario
 

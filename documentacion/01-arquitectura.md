@@ -6,7 +6,10 @@
 
 ## Visión General
 
-El sistema implementa una **arquitectura monolítica modular** con separación clara entre capas:
+El sistema implementa una **arquitectura monolítica modular** con separación clara entre capas.
+
+Para visualizar los diagramas de arquitectura, entidad-relación y los flujos de inscripción y autenticación, revise `08-diagramas.md`.
+
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
