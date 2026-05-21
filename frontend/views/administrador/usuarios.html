@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Usuarios - Administrador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Gestion de Usuarios</h1>
+            <div class="header__actions">
+                <div class="header__search">
+                    <svg class="header__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="header__search-input" placeholder="Buscar usuario..." id="search-input">
+                </div>
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Usuarios del Sistema</h2>
+                    <p class="content__subtitle">Administra participantes, facilitadores, analistas y administradores</p>
+                </div>
+                <button class="btn btn--primary" onclick="openUserModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nuevo Usuario
+                </button>
+            </div>
+
+            <!-- Filtros -->
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Rol</label>
+                            <select class="form-select" id="filter-rol" style="width: 160px;" onchange="loadUsers()">
+                                <option value="">Todos</option>
+                                <option value="Participante">Participante</option>
+                                <option value="Facilitador">Facilitador</option>
+                                <option value="Analista">Analista</option>
+                                <option value="Administrador">Administrador</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Estado</label>
+                            <select class="form-select" id="filter-estado" style="width: 160px;" onchange="loadUsers()">
+                                <option value="">Todos</option>
+                                <option value="1">Activo</option>
+                                <option value="0">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="users-table">
+                <div class="skeleton" style="height: 300px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let currentUsers = [];
+
+(async function() {
+    await initDashboard();
+    loadUsers();
+
+    // Busqueda
+    document.getElementById('search-input').addEventListener('input', debounce(() => loadUsers(), 300));
+})();
+
+async function loadUsers() {
+    Loading.show('users-table');
+
+    try {
+        const buscar = document.getElementById('search-input').value;
+        const rol = document.getElementById('filter-rol').value;
+        const activo = document.getElementById('filter-estado').value;
+
+        const data = await API.get('usuarios', { buscar, rol, activo });
+        currentUsers = data.usuarios || [];
+
+        renderUsers(currentUsers);
+    } catch (err) {
+        Toast.show('Error cargando usuarios: ' + err.message, 'error');
+    }
+}
+
+function renderUsers(usuarios) {
+    const badgeMap = {
+        'Administrador': 'badge--danger',
+        'Analista': 'badge--info',
+        'Facilitador': 'badge--secondary',
+        'Participante': 'badge--accent'
+    };
+
+    DataTable.render('users-table', usuarios, [
+        { label: 'Usuario', key: 'nombre', format: (v, r) => `<strong>${Utils.escapeHtml(v)} ${Utils.escapeHtml(r.apellidos)}</strong><br><small style="color:var(--color-text-muted)">${r.cedula}</small>` },
+        { label: 'Correo', key: 'correo', format: (v) => `<small>${Utils.escapeHtml(v)}</small>` },
+        { label: 'Telefono', key: 'telefono', format: (v) => `<small>${v}</small>` },
+        { label: 'Rol', key: 'rol', badge: badgeMap },
+        { label: 'Estado', key: 'activo', format: (v) => `<span class="badge ${v == 1 ? 'badge--accent' : 'badge--neutral'}">${v == 1 ? 'Activo' : 'Inactivo'}</span>` },
+        { label: 'Ultimo Acceso', key: 'ultimo_acceso', format: (v) => `<small>${Utils.formatDateTime(v)}</small>` }
+    ], {
+        actions: [
+            { icon: '✏️', title: 'Editar', class: 'btn btn--sm btn--ghost', onClick: (row) => `openUserModal(${row.id})` },
+            { icon: '🗑️', title: 'Desactivar', class: 'btn btn--sm btn--danger', onClick: (row) => `deleteUser(${row.id})` }
+        ]
+    });
+}
+
+function openUserModal(id) {
+    const user = id ? currentUsers.find(u => u.id === id) : null;
+
+    const content = `
+        <form id="user-form">
+            <input type="hidden" id="user-id" value="${user ? user.id : ''}">
+            <div class="form-group">
+                <label class="form-label form-label--required">Cedula</label>
+                <input type="text" id="user-cedula" class="form-input" placeholder="32361670" value="${user ? user.cedula : ''}" ${user ? 'disabled' : 'required'} maxlength="9" pattern="^\\d{6,9}$">
+            </div>
+            <div class="d-grid grid--2 gap-3">
+                <div class="form-group">
+                    <label class="form-label form-label--required">Nombre</label>
+                    <input type="text" id="user-nombre" class="form-input" value="${user ? Utils.escapeHtml(user.nombre) : ''}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label form-label--required">Apellidos</label>
+                    <input type="text" id="user-apellidos" class="form-input" value="${user ? Utils.escapeHtml(user.apellidos) : ''}" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label form-label--required">Correo</label>
+                <input type="email" id="user-correo" class="form-input" placeholder="correo@ejemplo.com" value="${user ? user.correo : ''}" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label form-label--required">Telefono</label>
+                <input type="tel" id="user-telefono" class="form-input" placeholder="04242987214" value="${user ? user.telefono : ''}" required maxlength="11" pattern="^04\\d{9}$">
+            </div>
+            <div class="d-grid grid--2 gap-3">
+                <div class="form-group">
+                    <label class="form-label form-label--required">Rol</label>
+                    <select class="form-select" id="user-rol" required>
+                        <option value="Participante" ${user && user.rol === 'Participante' ? 'selected' : ''}>Participante</option>
+                        <option value="Facilitador" ${user && user.rol === 'Facilitador' ? 'selected' : ''}>Facilitador</option>
+                        <option value="Analista" ${user && user.rol === 'Analista' ? 'selected' : ''}>Analista</option>
+                        <option value="Administrador" ${user && user.rol === 'Administrador' ? 'selected' : ''}>Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Carrera/Área ${(user && user.rol === 'Participante') ? '<span style="color: var(--color-danger);">*</span>' : ''}</label>
+                    <select class="form-select" id="user-area">
+                        <option value="">Seleccionar carrera...</option>
+                        <option value="Informatica" ${user && user.area === 'Informatica' ? 'selected' : ''}>Informática</option>
+                        <option value="Administracion" ${user && user.area === 'Administracion' ? 'selected' : ''}>Administración</option>
+                        <option value="Contabilidad" ${user && user.area === 'Contabilidad' ? 'selected' : ''}>Contabilidad</option>
+                        <option value="Mecanica" ${user && user.area === 'Mecanica' ? 'selected' : ''}>Mecánica</option>
+                        <option value="Electricidad" ${user && user.area === 'Electricidad' ? 'selected' : ''}>Electricidad</option>
+                    </select>
+                </div>
+            </div>
+                ${user ? `
+                <div class="form-group">
+                    <label class="form-label">Estado</label>
+                    <select class="form-select" id="user-activo">
+                        <option value="1" ${user.activo == 1 ? 'selected' : ''}>Activo</option>
+                        <option value="0" ${user.activo == 0 ? 'selected' : ''}>Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nueva Contraseña (opcional)</label>
+                <input type="password" id="user-password" class="form-input" placeholder="Minimo 6 caracteres">
+                <small class="form-hint">Deja en blanco para mantener la actual</small>
+            </div>
+                ` : `
+                <div class="form-group">
+                    <label class="form-label">Contraseña (opcional)</label>
+                    <input type="password" id="user-password" class="form-input" placeholder="Minimo 6 caracteres">
+                    <small class="form-hint">Si no ingresas, se generara automaticamente</small>
+                </div>
+                `}
+            </div>
+            <div class="form-actions" style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <button type="button" class="btn btn--ghost" onclick="Modal.close()">Cancelar</button>
+                <button type="button" class="btn btn--primary" onclick="saveUser()">${user ? 'Guardar Cambios' : 'Crear Usuario'}</button>
+            </div>
+        </form>
+    `;
+
+    Modal.open(content, { title: user ? 'Editar Usuario' : 'Nuevo Usuario' });
+}
+
+async function saveUser() {
+    const id = document.getElementById('user-id').value;
+    const cedula = document.getElementById('user-cedula').value.trim();
+    const nombre = document.getElementById('user-nombre').value.trim();
+    const apellidos = document.getElementById('user-apellidos').value.trim();
+    const correo = document.getElementById('user-correo').value.trim();
+    const telefono = document.getElementById('user-telefono').value.trim();
+    const rol = document.getElementById('user-rol').value;
+    const area = document.getElementById('user-area').value.trim();
+
+    // Validaciones
+    if (!id && !cedula) { Toast.show('La cedula es requerida', 'warning'); return; }
+    if (!nombre || !apellidos || !correo || !telefono) {
+        Toast.show('Todos los campos son requeridos', 'warning');
+        return;
+    }
+    if (rol === 'Participante' && !area) {
+        Toast.show('El área/carrera es requerida para participantes', 'warning');
+        return;
+    }
+    if (!/^\d{6,9}$/.test(cedula)) {
+        Toast.show('Cedula invalida. Ejemplo: 32361670', 'error');
+        return;
+    }
+    if (!/^04\d{9}$/.test(telefono)) {
+        Toast.show('Telefono invalido. Ejemplo: 04242987214', 'error');
+        return;
+    }
+
+    try {
+        if (id) {
+            const activo = document.getElementById('user-activo').value;
+            let updateData = { nombre, apellidos, telefono, rol, activo };
+            if (area) {
+                updateData.area = area;
+            }
+            // Agregar contraseña si fue proporcionada al editar
+            const password = document.getElementById('user-password').value;
+            if (password && password.length >= 6) {
+                updateData.password = password;
+            }
+            await API.put('usuario', id, updateData);
+            Toast.show('Usuario actualizado exitosamente', 'success');
+        } else {
+            let userData = { cedula, nombre, apellidos, correo, telefono, rol };
+            if (area) {
+                userData.area = area;
+            }
+            // Agregar contraseña si fue proporcionada
+            const password = document.getElementById('user-password').value;
+            if (password && password.length >= 6) {
+                userData.password = password;
+            }
+            // Agregar area por defecto para participantes
+            if (rol === 'Participante' && !userData.area) {
+                userData.area = 'Informatica'; // Area por defecto
+            }
+            const result = await API.post('usuario', userData);
+            const passMsg = password && password.length >= 6 ? 'Contraseña: la ingresada' : `Contraseña temporal: ${result.temp_password || 'N/A'}`;
+            Toast.show(`Usuario creado. ${passMsg}`, 'success');
+        }
+        Modal.close();
+        loadUsers();
+    } catch (err) {
+        Toast.show(err.message || 'Error guardando usuario', 'error');
+    }
+}
+
+function deleteUser(id) {
+    ConfirmDialog.open('Estas seguro de desactivar este usuario?', async () => {
+        try {
+            await API.delete('usuario', id);
+            Toast.show('Usuario desactivado', 'success');
+            loadUsers();
+        } catch (err) {
+            Toast.show(err.message || 'Error desactivando usuario', 'error');
+        }
+    });
+}
+
+function debounce(fn, ms) {
+    let timeout;
+    return (...args) => { clearTimeout(timeout); timeout = setTimeout(() => fn(...args), ms); };
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Inscribirme - Participante | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Inscripcion a Cursos</h1>
+            <div class="header__actions">
+                <div class="header__search">
+                    <svg class="header__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="header__search-input" placeholder="Buscar curso..." id="search-input">
+                </div>
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Cursos Disponibles</h2>
+                    <p class="content__subtitle">Inscribete en los cursos que desees cursar</p>
+                </div>
+            </div>
+
+            <div id="cursos-disponibles">
+                <div class="skeleton" style="height: 400px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let cursosDisponibles = [];
+
+(async function() {
+    await initDashboard();
+    loadCursosDisponibles();
+    document.getElementById('search-input').addEventListener('input', debounce(() => renderCursos(cursosDisponibles), 300));
+})();
+
+async function loadCursosDisponibles() {
+    Loading.show('cursos-disponibles');
+    try {
+        const data = await API.get('cursos-disponibles');
+        cursosDisponibles = data.cursos || [];
+        renderCursos(cursosDisponibles);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderCursos(cursos) {
+    const container = document.getElementById('cursos-disponibles');
+    const search = document.getElementById('search-input').value.toLowerCase();
+
+    const filtered = search ? cursos.filter(c =>
+        c.nombre.toLowerCase().includes(search) ||
+        c.codigo.toLowerCase().includes(search) //||
+        //(c.area || '').toLowerCase().includes(search)
+    ) : cursos;
+
+    if (!filtered.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No hay cursos disponibles</div><div class="empty-state__text">Todos los cursos estan llenos o ya estas inscrito</div></div>';
+        return;
+    }
+
+    const estadoBadge = { 'Planificado': 'badge--primary', 'En Curso': 'badge--accent', 'Finalizado': 'badge--neutral' };
+
+    container.innerHTML = `<div class="grid grid--auto">${filtered.map(c => `
+        <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card__header" style="flex: 1;">
+                <div>
+                    <span class="badge ${estadoBadge[c.estado] || 'badge--neutral'}" style="margin-bottom: 0.5rem; display: inline-block;">${c.estado}</span>
+                    <h3 class="card__title" style="font-size: 1.0625rem;">${Utils.escapeHtml(c.nombre)}</h3>
+                    <p style="color: var(--color-text-muted); font-size: 0.8125rem; margin-top: 0.25rem;">${c.codigo}</p>
+                </div>
+            </div>
+            <div class="card__body" style="flex: 1;">
+                <p style="color: var(--color-text-secondary); font-size: 0.9375rem; line-height: 1.6; margin-bottom: 1rem;">${Utils.escapeHtml(c.descripcion || 'Sin descripcion')}</p>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.875rem; color: var(--color-text-muted);">
+                    <div class="d-flex justify-between"><span>Area:</span><strong style="color: var(--color-text-primary)">${c.area || 'N/A'}</strong></div>
+                    <div class="d-flex justify-between"><span>Nivel:</span><strong style="color: var(--color-text-primary)">${c.nivel}</strong></div>
+                    <div class="d-flex justify-between"><span>Duracion:</span><strong style="color: var(--color-text-primary)">${c.duracion_horas}h</strong></div>
+                    <div class="d-flex justify-between"><span>Facilitador:</span><strong style="color: var(--color-text-primary)">${Utils.escapeHtml(c.nombre_facilitador || 'Por asignar')}</strong></div>
+                    <div class="d-flex justify-between"><span>Cupos:</span><strong style="color: ${c.total_inscritos >= c.cupo_maximo ? 'var(--color-danger)' : 'var(--color-accent)'}">${c.total_inscritos || 0}/${c.cupo_maximo}</strong></div>
+                </div>
+            </div>
+            <div class="card__footer">
+                <button class="btn btn--primary w-full" onclick="inscribirse(${c.id})" ${c.total_inscritos >= c.cupo_maximo ? 'disabled' : ''}>
+                    ${c.total_inscritos >= c.cupo_maximo ? 'Cupo Lleno' : 'Inscribirme'}
+                </button>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+
+async function inscribirse(cursoId) {
+    try {
+        await API.post('inscripcion', { curso_id: cursoId });
+        Toast.show('Inscripcion exitosa', 'success');
+        loadCursosDisponibles();
+    } catch (err) {
+        Toast.show(err.message || 'Error al inscribirse', 'error');
+    }
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+</script>
+
+</body>
+</html>

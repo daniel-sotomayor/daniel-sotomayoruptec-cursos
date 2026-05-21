@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Mis Cursos - Participante | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Mis Cursos</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Mis Cursos Inscritos</h2>
+                    <p class="content__subtitle">Todos los cursos en los que estas inscrito</p>
+                </div>
+                <a href="inscribir.html" class="btn btn--accent">+ Inscribirme en otro curso</a>
+            </div>
+
+            <div id="mis-cursos-container">
+                <div class="skeleton" style="height: 300px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+(async function() {
+    await initDashboard();
+    loadMisCursos();
+})();
+
+async function loadMisCursos() {
+    try {
+        const data = await API.get('mis-cursos');
+        renderMisCursos(data.cursos || []);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderMisCursos(cursos) {
+    const container = document.getElementById('mis-cursos-container');
+    if (!cursos.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No estas inscrito en ningun curso</div><div class="empty-state__text"><a href="inscribir.html">Inscribirme ahora</a></div></div>';
+        return;
+    }
+
+    const estadoBadge = { 'Inscrito': 'badge--primary', 'En Progreso': 'badge--accent', 'Completado': 'badge--accent', 'Reprobado': 'badge--danger' };
+
+    DataTable.render('mis-cursos-container', cursos, [
+        { label: 'Curso', key: 'codigo', format: (v, r) => `<strong>${v}</strong><br><small>${Utils.escapeHtml(r.nombre)}</small>` },
+        { label: 'Area', key: 'area' },
+        { label: 'Duracion', key: 'duracion_horas', format: (v) => `${v}h` },
+        { label: 'Facilitador', key: 'nombre_facilitador', format: (v) => `<small>${Utils.escapeHtml(v || 'N/A')}</small>` },
+        { label: 'Estado', key: 'estado_inscripcion', badge: estadoBadge },
+        { label: 'Nota Final', key: 'nota_final', format: (v) => v ? `<span class="badge ${v >= 10 ? 'badge--accent' : 'badge--danger'}" style="font-size:1rem">${v}</span>` : '<span class="badge badge--neutral">Pendiente</span>' }
+    ], {
+        actions: [
+            { icon: '📋', title: 'Ver Notas', class: 'btn btn--sm btn--primary', onClick: () => `window.location.href='mis-notas.html'` }
+        ]
+    });
+}
+</script>
+
+</body>
+</html>

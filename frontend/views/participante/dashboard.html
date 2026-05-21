@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Dashboard - Participante | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Panel de Participante</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Bienvenido, <span id="user-name"></span></h2>
+                    <p class="content__subtitle">Consulta tus cursos, notas y plan de evaluacion</p>
+                </div>
+            </div>
+
+            <div class="grid grid--3" id="stats-container">
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+            </div>
+
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card__header">
+                    <h3 class="card__title">Mis Cursos Inscritos</h3>
+                    <a href="mis-cursos.html" class="btn btn--sm btn--ghost">Ver todos</a>
+                </div>
+                <div class="card__body" id="mis-cursos">
+                    <div class="skeleton" style="height: 200px;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+(async function() {
+    await initDashboard();
+    if (AUTH.user) document.getElementById('user-name').textContent = AUTH.user.nombre;
+
+    try {
+        const data = await API.get('resumen');
+        if (data.success) {
+            renderStats(data);
+            renderMisCursos(data.inscripciones || []);
+        }
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+})();
+
+function renderStats(data) {
+    const stats = [
+        { icon: '📚', cls: 'stat-card__icon--primary', value: data.mis_cursos || 0, label: 'Mis Cursos' },
+        { icon: '🏆', cls: 'stat-card__icon--accent', value: data.cursos_completados || 0, label: 'Completados' },
+        { icon: '📊', cls: 'stat-card__icon--secondary', value: data.promedio_general || 0, label: 'Promedio General' }
+    ];
+    document.getElementById('stats-container').innerHTML = stats.map(s => `
+        <div class="stat-card">
+            <div class="stat-card__header"><div class="stat-card__icon ${s.cls}">${s.icon}</div></div>
+            <div class="stat-card__value">${Utils.formatNumber(s.value)}</div>
+            <div class="stat-card__label">${s.label}</div>
+        </div>
+    `).join('');
+}
+
+function renderMisCursos(inscripciones) {
+    const container = document.getElementById('mis-cursos');
+    if (!inscripciones.length) { container.innerHTML = '<div class="empty-state">No estas inscrito en ningun curso. <a href="inscribir.html">Inscribirme ahora</a></div>'; return; }
+
+    const estadoBadge = { 'Inscrito': 'badge--primary', 'En Progreso': 'badge--accent', 'Completado': 'badge--accent', 'Reprobado': 'badge--danger', 'Abandonado': 'badge--neutral' };
+
+    DataTable.render('mis-cursos', inscripciones, [
+        { label: 'Curso', key: 'codigo', format: (v, r) => `<strong>${v || ''}</strong><br><small>${Utils.escapeHtml(r.nombre)}</small>` },
+        { label: 'Area', key: 'area' },
+        { label: 'Estado', key: 'estado', format: (v) => `<span class="badge ${estadoBadge[v] || 'badge--neutral'}">${v}</span>` },
+        { label: 'Nota Final', key: 'nota_final', format: (v) => v ? `<span class="badge ${v >= 10 ? 'badge--accent' : 'badge--danger'}" style="font-size:1rem">${v}</span>` : '<span class="badge badge--neutral">Pendiente</span>' }
+    ], {
+        actions: [
+            { icon: '📋', title: 'Ver Notas', class: 'btn btn--sm btn--primary', onClick: (row) => `window.location.href='mis-notas.html'` }
+        ]
+    });
+}
+</script>
+
+</body>
+</html>

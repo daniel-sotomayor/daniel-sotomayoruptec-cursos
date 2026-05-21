@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Auditoria - Administrador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Auditoria del Sistema</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Logs de Actividad</h2>
+                    <p class="content__subtitle">Registro completo de todas las acciones del sistema</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap items-end">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Accion</label>
+                            <select class="form-select" id="filter-accion" style="width: 160px;" onchange="loadAuditoria()">
+                                <option value="">Todas</option>
+                                <option value="CREATE">Crear</option>
+                                <option value="UPDATE">Actualizar</option>
+                                <option value="DELETE">Eliminar</option>
+                                <option value="LOGIN">Login</option>
+                                <option value="LOGOUT">Logout</option>
+                                <option value="BACKUP">Backup</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Desde</label>
+                            <input type="date" class="form-input" id="filter-desde" onchange="loadAuditoria()">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Hasta</label>
+                            <input type="date" class="form-input" id="filter-hasta" onchange="loadAuditoria()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="auditoria-table">
+                <div class="skeleton" style="height: 400px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+(async function() {
+    await initDashboard();
+    loadAuditoria();
+})();
+
+async function loadAuditoria() {
+    Loading.show('auditoria-table');
+    try {
+        const accion = document.getElementById('filter-accion').value;
+        const fecha_desde = document.getElementById('filter-desde').value;
+        const fecha_hasta = document.getElementById('filter-hasta').value;
+
+        const data = await API.get('auditoria', { accion, fecha_desde, fecha_hasta });
+        renderAuditoria(data.logs || []);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderAuditoria(logs) {
+    const accionMap = {
+        'CREATE': { badge: 'badge--accent', label: 'CREAR' },
+        'UPDATE': { badge: 'badge--info', label: 'ACTUALIZAR' },
+        'DELETE': { badge: 'badge--danger', label: 'ELIMINAR' },
+        'LOGIN': { badge: 'badge--secondary', label: 'LOGIN' },
+        'LOGOUT': { badge: 'badge--neutral', label: 'LOGOUT' },
+        'BACKUP': { badge: 'badge--primary', label: 'BACKUP' },
+        'INSCRIBIR': { badge: 'badge--accent', label: 'INSCRIBIR' },
+        'PASSWORD_CHANGE': { badge: 'badge--warning', label: 'CAMBIO PASS' }
+    };
+
+    DataTable.render('auditoria-table', logs, [
+        { label: 'Fecha/Hora', key: 'fecha_hora', format: (v) => `<small style="white-space:nowrap">${Utils.formatDateTime(v)}</small>` },
+        { label: 'Usuario', key: 'usuario_nombre', format: (v) => `<strong>${Utils.escapeHtml(v || 'Sistema')}</strong>` },
+        { label: 'Accion', key: 'accion', format: (v) => { const a = accionMap[v] || { badge: 'badge--neutral', label: v }; return `<span class="badge ${a.badge}">${a.label}</span>`; } },
+        { label: 'Tabla', key: 'tabla_afectada', format: (v) => `<code style="background:var(--color-bg);padding:0.125rem 0.375rem;border-radius:var(--radius-sm);font-size:0.8125rem">${v || '-'}</code>` },
+        { label: 'Registro ID', key: 'registro_id', format: (v) => `<small>${v || '-'}</small>` },
+        { label: 'IP', key: 'ip_address', format: (v) => `<small style="color:var(--color-text-muted)">${v || '-'}</small>` }
+    ]);
+}
+</script>
+
+</body>
+</html>

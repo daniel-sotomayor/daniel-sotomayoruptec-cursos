@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Facilitadores - Analista | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Gestion de Facilitadores</h1>
+            <div class="header__actions">
+                <div class="header__search">
+                    <svg class="header__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="header__search-input" placeholder="Buscar facilitador..." id="search-input">
+                </div>
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Facilitadores del Sistema</h2>
+                    <p class="content__subtitle">Visualiza y gestiona los facilitadores disponibles</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Estado</label>
+                            <select class="form-select" id="filter-estado" style="width: 160px;" onchange="loadFacilitadores()">
+                                <option value="">Todos</option>
+                                <option value="1">Activos</option>
+                                <option value="0">Inactivos</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="facilitadores-table">
+                <div class="skeleton" style="height: 300px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let currentFacilitadores = [];
+
+(async function() {
+    await initDashboard();
+    loadFacilitadores();
+    document.getElementById('search-input').addEventListener('input', debounce(() => loadFacilitadores(), 300));
+})();
+
+async function loadFacilitadores() {
+    Loading.show('facilitadores-table');
+    try {
+        const buscar = document.getElementById('search-input').value;
+        const activo = document.getElementById('filter-estado').value;
+        const data = await API.get('usuarios', { rol: 'Facilitador', buscar, activo });
+        currentFacilitadores = data.usuarios || [];
+        renderFacilitadores(currentFacilitadores);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderFacilitadores(facilitadores) {
+    DataTable.render('facilitadores-table', facilitadores, [
+        { label: 'Nombre', key: 'nombre_completo', format: (v, r) => `<strong>${Utils.escapeHtml(v || r.nombre + ' ' + r.apellidos)}</strong><br><small>Cedula: ${r.cedula}</small>` },
+        { label: 'Correo', key: 'correo', format: (v) => `<small>${v}</small>` },
+        { label: 'Telefono', key: 'telefono' },
+        { label: 'Cursos Asignados', key: 'total_cursos', format: (v) => `<span class="badge badge--primary">${v || 0}</span>` },
+        { label: 'Estado', key: 'activo', format: (v) => `<span class="badge ${v === '1' || v === 1 ? 'badge--accent' : 'badge--neutral'}">${v === '1' || v === 1 ? 'Activo' : 'Inactivo'}</span>` },
+        { label: 'Ultimo Acceso', key: 'ultimo_acceso', format: (v) => `<small>${Utils.formatDateTime(v) || 'Nunca'}</small>` }
+    ], {
+        actions: [
+            { icon: '👁️', title: 'Ver Cursos', class: 'btn btn--sm btn--ghost', onClick: (row) => `verCursosFacilitador(${row.id})` }
+        ]
+    });
+}
+
+function verCursosFacilitador(id) {
+    window.location.href = `cursos.html?facilitador=${id}`;
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+</script>
+
+</body>
+</html>

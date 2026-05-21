@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Dashboard - Administrador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Panel de Administracion</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Resumen General</h2>
+                    <p class="content__subtitle">Estadisticas y estado del sistema</p>
+                </div>
+            </div>
+
+            <!-- Estadisticas Principales -->
+            <div class="grid grid--4" id="stats-container">
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+            </div>
+
+            <!-- Estudiantes por Area (Carrera) -->
+            <div class="card" style="margin-top: 1.5rem; background: linear-gradient(135deg, var(--color-bg-card) 0%, var(--color-bg-secondary) 100%);">
+                <div class="card__header">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="background: var(--color-primary); color: white; padding: 0.5rem; border-radius: var(--radius-lg); font-size: 1.25rem;">👨‍🎓</div>
+                        <div>
+                            <h3 class="card__title" style="margin: 0;">Estudiantes por Area / Carrera</h3>
+                            <p class="card__subtitle" style="margin: 0; font-size: 0.875rem; color: var(--color-text-muted);">Distribucion de participantes segun su carrera</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card__body">
+                    <div id="estudiantes-por-area" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div class="skeleton" style="height: 100px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cursos con Estudiantes por Area -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card__header">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="background: var(--color-accent); color: white; padding: 0.5rem; border-radius: var(--radius-lg); font-size: 1.25rem;">📚</div>
+                        <div>
+                            <h3 class="card__title" style="margin: 0;">Cursos y Estudiantes por Area</h3>
+                            <p class="card__subtitle" style="margin: 0; font-size: 0.875rem; color: var(--color-text-muted);">Cursos agrupados por carrera con cantidad de inscritos</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card__body" id="cursos-por-area-container">
+                    <div class="skeleton" style="height: 300px;"></div>
+                </div>
+            </div>
+
+            <!-- Top 5 Cursos con mas Estudiantes -->
+            <div class="card" style="margin-top: 1.5rem; border-left: 4px solid var(--color-secondary);">
+                <div class="card__header">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="background: var(--color-secondary); color: white; padding: 0.5rem; border-radius: var(--radius-lg); font-size: 1.25rem;">🏆</div>
+                        <div>
+                            <h3 class="card__title" style="margin: 0;">Top 5 Cursos mas Populares</h3>
+                            <p class="card__subtitle" style="margin: 0; font-size: 0.875rem; color: var(--color-text-muted);">Cursos con mayor numero de estudiantes inscritos</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card__body" id="top-cursos">
+                    <div class="skeleton" style="height: 200px;"></div>
+                </div>
+            </div>
+
+            <!-- Seccion de Recientes -->
+            <div class="grid grid--2" style="margin-top: 1.5rem;">
+                <div class="card">
+                    <div class="card__header">
+                        <h3 class="card__title">Cursos Recientes</h3>
+                        <a href="cursos.html" class="btn btn--sm btn--ghost">Ver todos</a>
+                    </div>
+                    <div class="card__body" id="cursos-recientes">
+                        <div class="skeleton" style="height: 200px;"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card__header">
+                        <h3 class="card__title">Usuarios Recientes</h3>
+                        <a href="usuarios.html" class="btn btn--sm btn--ghost">Ver todos</a>
+                    </div>
+                    <div class="card__body" id="usuarios-recientes">
+                        <div class="skeleton" style="height: 200px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actividad del Sistema -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <div class="card__header">
+                    <h3 class="card__title">Actividad Reciente del Sistema</h3>
+                    <a href="auditoria.html" class="btn btn--sm btn--ghost">Ver auditoria completa</a>
+                </div>
+                <div class="card__body" id="actividad-reciente">
+                    <div class="skeleton" style="height: 250px;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+(async function() {
+    await initDashboard();
+
+    // Colores para cada area - DEFINIR PRIMERO
+    const areaColors = {
+        'Administracion': { bg: '#3b82f6', icon: '📊' },
+        'Informatica': { bg: '#10b981', icon: '💻' },
+        'Mecanica': { bg: '#f59e0b', icon: '⚙️' },
+        'Electrica': { bg: '#ef4444', icon: '⚡' },
+        'Mantenimiento': { bg: '#8b5cf6', icon: '🔧' },
+        'Transporte Ferroviario': { bg: '#06b6d4', icon: '🚂' }
+    };
+
+    // Cargar datos del dashboard
+    try {
+        const data = await API.get('resumen');
+        if (data.success) {
+            renderStats(data);
+            renderEstudiantesPorArea(data.estudiantes_por_area || []);
+            renderCursosPorArea(data.cursos_con_estudiantes_por_area || []);
+            renderTopCursos(data.top_cursos || []);
+            renderCursosRecientes(data.cursos_recientes || []);
+            renderUsuariosRecientes(data.usuarios_recientes || []);
+            renderActividadReciente(data.actividad_reciente || []);
+        }
+    } catch (err) {
+        Toast.show('Error cargando datos: ' + err.message, 'error');
+        console.error('[Dashboard] Error:', err);
+    }
+
+    function renderStats(data) {
+        const stats = [
+            { icon: '👨‍🎓', cls: 'stat-card__icon--accent', value: data.total_estudiantes || 0, label: 'Participantes', change: 'activos' },
+            { icon: '👨‍🏫', cls: 'stat-card__icon--secondary', value: data.total_facilitadores || 0, label: 'Facilitadores', change: 'activos' },
+            { icon: '🔍', cls: 'stat-card__icon--info', value: data.total_analistas || 0, label: 'Analistas', change: 'activos' },
+            { icon: '📚', cls: 'stat-card__icon--primary', value: data.total_cursos || 0, label: 'Cursos', change: 'en sistema' }
+        ];
+
+        document.getElementById('stats-container').innerHTML = stats.map(s => `
+            <div class="stat-card" style="transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow=''">
+                <div class="stat-card__header">
+                    <div class="stat-card__icon ${s.cls}">${s.icon}</div>
+                </div>
+                <div class="stat-card__value">${Utils.formatNumber(s.value)}</div>
+                <div class="d-flex items-center justify-between">
+                    <span class="stat-card__label">${s.label}</span>
+                    <span class="stat-card__change stat-card__change--up">${s.change}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderEstudiantesPorArea(data) {
+        const container = document.getElementById('estudiantes-por-area');
+        if (!data.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No hay estudiantes por area</div></div>';
+            return;
+        }
+
+        const total = data.reduce((sum, item) => sum + parseInt(item.total_estudiantes), 0);
+
+        container.innerHTML = data.map(item => {
+            const color = areaColors[item.area] || { bg: '#6b7280', icon: '📚' };
+            const porcentaje = ((item.total_estudiantes / total) * 100).toFixed(1);
+
+            return `
+                <div style="background: white; border-radius: var(--radius-lg); padding: 1rem; box-shadow: var(--shadow-sm); border-left: 4px solid ${color.bg}; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+                        <div style="background: ${color.bg}20; color: ${color.bg}; padding: 0.5rem; border-radius: var(--radius-md); font-size: 1.25rem;">
+                            ${color.icon}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: var(--color-text-primary); font-size: 0.9375rem;">${item.area}</div>
+                            <div style="font-size: 0.75rem; color: var(--color-text-muted);">${porcentaje}% del total</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+                        <span style="font-size: 1.75rem; font-weight: 700; color: ${color.bg};">${item.total_estudiantes}</span>
+                        <span style="font-size: 0.875rem; color: var(--color-text-muted);">estudiantes</span>
+                    </div>
+                    <div style="margin-top: 0.5rem; background: var(--color-border-light); border-radius: var(--radius-full); height: 6px; overflow: hidden;">
+                        <div style="background: ${color.bg}; height: 100%; border-radius: var(--radius-full); width: ${porcentaje}%;"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderCursosPorArea(data) {
+        const container = document.getElementById('cursos-por-area-container');
+        if (!data.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No hay cursos por area</div></div>';
+            return;
+        }
+
+        // Agrupar cursos por area
+        const cursosPorArea = {};
+        data.forEach(curso => {
+            if (!cursosPorArea[curso.area]) cursosPorArea[curso.area] = [];
+            cursosPorArea[curso.area].push(curso);
+        });
+
+        container.innerHTML = Object.entries(cursosPorArea).map(([area, cursos]) => {
+            const color = areaColors[area] || { bg: '#6b7280', icon: '📚' };
+            const totalEstudiantesArea = cursos.reduce((sum, c) => sum + parseInt(c.total_estudiantes || 0), 0);
+
+            return `
+                <div style="margin-bottom: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden;">
+                    <div style="background: ${color.bg}10; padding: 0.875rem 1rem; display: flex; align-items: center; gap: 0.75rem; border-bottom: 1px solid var(--color-border);">
+                        <span style="font-size: 1.25rem;">${color.icon}</span>
+                        <span style="font-weight: 600; color: ${color.bg};">${area}</span>
+                        <span style="margin-left: auto; background: ${color.bg}; color: white; padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-size: 0.75rem; font-weight: 500;">
+                            ${cursos.length} cursos · ${totalEstudiantesArea} estudiantes
+                        </span>
+                    </div>
+                    <div style="padding: 0.5rem;">
+                        <table class="table" style="margin: 0;">
+                            <thead>
+                                <tr>
+                                    <th style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 500;">Curso</th>
+                                    <th style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 500;">Facilitador</th>
+                                    <th style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 500; text-align: center;">Estado</th>
+                                    <th style="font-size: 0.75rem; text-transform: uppercase; color: var(--color-text-muted); font-weight: 500; text-align: right;">Estudiantes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${cursos.map(c => `
+                                    <tr style="transition: background 0.2s;" onmouseover="this.style.background='var(--color-bg-secondary)'" onmouseout="this.style.background=''">
+                                        <td>
+                                            <strong style="color: var(--color-text-primary);">${c.codigo}</strong>
+                                            <div style="font-size: 0.8125rem; color: var(--color-text-muted);">${Utils.escapeHtml(c.nombre)}</div>
+                                        </td>
+                                        <td style="font-size: 0.875rem; color: var(--color-text-secondary);">${c.facilitador || 'Sin asignar'}</td>
+                                        <td style="text-align: center;">
+                                            <span class="badge badge--${c.estado === 'En Curso' ? 'accent' : c.estado === 'Finalizado' ? 'neutral' : c.estado === 'Planificado' ? 'primary' : 'danger'}">
+                                                ${c.estado}
+                                            </span>
+                                        </td>
+                                        <td style="text-align: right;">
+                                            <span style="background: var(--color-bg-secondary); padding: 0.25rem 0.75rem; border-radius: var(--radius-full); font-weight: 600; font-size: 0.875rem;">
+                                                ${c.total_estudiantes}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderTopCursos(data) {
+        const container = document.getElementById('top-cursos');
+        if (!data.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No hay cursos con estudiantes</div></div>';
+            return;
+        }
+
+        const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+
+        container.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                ${data.map((c, i) => {
+                    const color = areaColors[c.area] || { bg: '#6b7280' };
+                    return `
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.875rem; background: var(--color-bg-secondary); border-radius: var(--radius-lg); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateX(8px)';this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.transform='translateX(0)';this.style.boxShadow=''">
+                            <div style="font-size: 1.5rem;">${medals[i] || (i + 1)}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: var(--color-text-primary);">${c.codigo} · ${Utils.escapeHtml(c.nombre)}</div>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                                    <span style="background: ${color.bg}20; color: ${color.bg}; padding: 0.125rem 0.5rem; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 500;">${c.area}</span>
+                                    <span style="color: var(--color-text-muted); font-size: 0.75rem;">👨‍🏫 ${c.facilitador || 'Sin asignar'}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: center; min-width: 80px;">
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-secondary);">${c.total_estudiantes}</div>
+                                <div style="font-size: 0.6875rem; color: var(--color-text-muted); text-transform: uppercase;">estudiantes</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    function renderCursosRecientes(cursos) {
+        const container = document.getElementById('cursos-recientes');
+        if (!cursos.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No hay cursos</div></div>';
+            return;
+        }
+        container.innerHTML = `
+            <div class="table-container"><table class="table">
+                <tbody>
+                    ${cursos.map(c => `
+                        <tr>
+                            <td><strong>${Utils.escapeHtml(c.codigo)}</strong><br><small style="color:var(--color-text-muted)">${Utils.escapeHtml(c.nombre)}</small></td>
+                            <td><span class="badge badge--${c.estado === 'En Curso' ? 'accent' : c.estado === 'Finalizado' ? 'neutral' : 'primary'}">${c.estado}</span></td>
+                            <td style="text-align:right"><small>${Utils.formatDate(c.fecha_inicio)}</small></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table></div>
+        `;
+    }
+
+    function renderUsuariosRecientes(usuarios) {
+        const container = document.getElementById('usuarios-recientes');
+        if (!usuarios.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No hay usuarios</div></div>';
+            return;
+        }
+        container.innerHTML = `
+            <div class="table-container"><table class="table">
+                <tbody>
+                    ${usuarios.map(u => `
+                        <tr>
+                            <td><strong>${Utils.escapeHtml(u.nombre_completo || u.nombre + ' ' + u.apellidos)}</strong><br><small style="color:var(--color-text-muted)">${u.cedula}</small></td>
+                            <td><span class="badge badge--${u.rol === 'Administrador' ? 'danger' : u.rol === 'Analista' ? 'info' : u.rol === 'Facilitador' ? 'secondary' : 'accent'}">${u.rol}</span></td>
+                            <td style="text-align:right"><small>${Utils.formatDateTime(u.creado_en)}</small></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table></div>
+        `;
+    }
+
+    function renderActividadReciente(actividades) {
+        const container = document.getElementById('actividad-reciente');
+        if (!actividades.length) {
+            container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">Sin actividad reciente</div></div>';
+            return;
+        }
+
+        const acciones = {
+            'CREATE': { icon: '✅', color: 'var(--color-accent)' },
+            'UPDATE': { icon: '✏️', color: 'var(--color-info)' },
+            'DELETE': { icon: '🗑️', color: 'var(--color-danger)' },
+            'LOGIN': { icon: '🔑', color: 'var(--color-secondary)' },
+            'LOGOUT': { icon: '🚪', color: 'var(--color-text-muted)' },
+            'INSCRIBIR': { icon: '📝', color: 'var(--color-primary)' },
+            'BACKUP': { icon: '💾', color: 'var(--color-accent)' },
+            'PASSWORD_CHANGE': { icon: '🔐', color: 'var(--color-warning)' }
+        };
+
+        container.innerHTML = `
+            <div class="table-container"><table class="table">
+                <tbody>
+                    ${actividades.map(a => {
+                        const acc = acciones[a.accion] || { icon: '📌', color: 'var(--color-text-muted)' };
+                        return `
+                        <tr>
+                            <td style="width:40px;font-size:1.125rem;text-align:center">${acc.icon}</td>
+                            <td>
+                                <strong>${a.usuario_nombre || 'Sistema'}</strong>
+                                <span style="color:var(--color-text-muted)"> &middot; ${a.accion}</span>
+                                ${a.tabla_afectada ? `<span style="color:var(--color-text-muted)"> en ${a.tabla_afectada}</span>` : ''}
+                            </td>
+                            <td style="text-align:right;white-space:nowrap"><small style="color:var(--color-text-muted)">${Utils.formatDateTime(a.fecha_hora)}</small></td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table></div>
+        `;
+    }
+})();
+</script>
+
+</body>
+</html>

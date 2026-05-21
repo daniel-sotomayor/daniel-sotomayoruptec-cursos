@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Dashboard - Analista | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Panel de Analista</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Bienvenido, <span id="user-name"></span></h2>
+                    <p class="content__subtitle">Verifica cursos y organiza facilitadores</p>
+                </div>
+            </div>
+
+            <div class="grid grid--4" id="stats-container">
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+                <div class="stat-card skeleton" style="height: 140px;"></div>
+            </div>
+
+            <div class="grid grid--2" style="margin-top: 1.5rem;">
+                <div class="card">
+                    <div class="card__header">
+                        <h3 class="card__title">Cursos por Area</h3>
+                    </div>
+                    <div class="card__body" id="cursos-area">
+                        <div class="skeleton" style="height: 200px;"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card__header">
+                        <h3 class="card__title">Cursos sin Facilitador</h3>
+                        <a href="cursos.html" class="btn btn--sm btn--ghost">Ver todos</a>
+                    </div>
+                    <div class="card__body" id="cursos-sin-facilitador">
+                        <div class="skeleton" style="height: 200px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+(async function() {
+    await initDashboard();
+
+    if (AUTH.user) {
+        document.getElementById('user-name').textContent = AUTH.user.nombre;
+    }
+
+    try {
+        const data = await API.get('resumen');
+        if (data.success) {
+            renderStats(data);
+            renderCursosArea(data.cursos_por_area || []);
+            renderCursosSinFacilitador(data.cursos_sin_facilitador || []);
+        }
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+})();
+
+function renderStats(data) {
+    const stats = [
+        { icon: '📚', cls: 'stat-card__icon--primary', value: data.total_cursos || 0, label: 'Total Cursos' },
+        { icon: '📋', cls: 'stat-card__icon--accent', value: data.cursos_planificados || 0, label: 'Planificados' },
+        { icon: '👨‍🏫', cls: 'stat-card__icon--secondary', value: data.total_facilitadores || 0, label: 'Facilitadores' },
+        { icon: '📝', cls: 'stat-card__icon--info', value: data.total_inscripciones || 0, label: 'Inscripciones' }
+    ];
+
+    document.getElementById('stats-container').innerHTML = stats.map(s => `
+        <div class="stat-card">
+            <div class="stat-card__header"><div class="stat-card__icon ${s.cls}">${s.icon}</div></div>
+            <div class="stat-card__value">${Utils.formatNumber(s.value)}</div>
+            <div class="stat-card__label">${s.label}</div>
+        </div>
+    `).join('');
+}
+
+function renderCursosArea(areas) {
+    const container = document.getElementById('cursos-area');
+    if (!areas || !areas.length) { container.innerHTML = '<div class="empty-state">Sin datos</div>'; return; }
+    const max = Math.max(...areas.map(a => a.cantidad));
+    container.innerHTML = `<div style="display:flex;flex-direction:column;gap:0.875rem">${areas.map(a => `
+        <div>
+            <div class="d-flex justify-between" style="margin-bottom:0.375rem">
+                <span style="font-weight:500;font-size:0.9375rem">${Utils.escapeHtml(a.area)}</span>
+                <span style="font-weight:600;color:var(--color-primary)">${a.cantidad}</span>
+            </div>
+            <div style="background:var(--color-border-light);border-radius:var(--radius-full);height:8px;overflow:hidden">
+                <div style="background:var(--color-primary);height:100%;border-radius:var(--radius-full);width:${(a.cantidad/max*100)}%;transition:width 0.5s"></div>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+
+function renderCursosSinFacilitador(cursos) {
+    const container = document.getElementById('cursos-sin-facilitador');
+    if (!cursos || !cursos.length) { container.innerHTML = '<div class="empty-state">Todos los cursos tienen facilitador asignado</div>'; return; }
+    container.innerHTML = `
+        <div class="table-container"><table class="table">
+            <tbody>${cursos.map(c => `
+                <tr>
+                    <td><strong>${Utils.escapeHtml(c.codigo)}</strong><br><small style="color:var(--color-text-muted)">${Utils.escapeHtml(c.nombre)}</small></td>
+                    <td><span class="badge badge--primary">${c.estado}</span></td>
+                    <td style="text-align:right"><a href="cursos.html?id=${c.id}" class="btn btn--sm btn--primary">Asignar</a></td>
+                </tr>
+            `).join('')}</tbody>
+        </table></div>`;
+}
+</script>
+
+</body>
+</html>

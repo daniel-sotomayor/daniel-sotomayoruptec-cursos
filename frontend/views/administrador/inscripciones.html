@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Inscripciones - Administrador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Gestion de Inscripciones</h1>
+            <div class="header__actions">
+                <div class="header__search">
+                    <svg class="header__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="header__search-input" placeholder="Buscar inscripcion..." id="search-input">
+                </div>
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Inscripciones del Sistema</h2>
+                    <p class="content__subtitle">Administra las inscripciones de participantes a cursos</p>
+                </div>
+                <button class="btn btn--primary" onclick="openInscripcionModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nueva Inscripcion
+                </button>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Curso</label>
+                            <select class="form-select" id="filter-curso" style="width: 220px;" onchange="loadInscripciones()">
+                                <option value="">Todos los cursos</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Estado</label>
+                            <select class="form-select" id="filter-estado" style="width: 160px;" onchange="loadInscripciones()">
+                                <option value="">Todos</option>
+                                <option value="Inscrito">Inscrito</option>
+                                <option value="En Progreso">En Progreso</option>
+                                <option value="Completado">Completado</option>
+                                <option value="Abandonado">Abandonado</option>
+                                <option value="Reprobado">Reprobado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="inscripciones-table">
+                <div class="skeleton" style="height: 300px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let currentInscripciones = [];
+let cursosList = [];
+let participantesList = [];
+
+(async function() {
+    await initDashboard();
+    await loadCursos();
+    await loadParticipantes();
+    loadInscripciones();
+    document.getElementById('search-input').addEventListener('input', debounce(() => loadInscripciones(), 300));
+})();
+
+async function loadCursos() {
+    try {
+        const data = await API.get('cursos');
+        cursosList = data.cursos || [];
+        const select = document.getElementById('filter-curso');
+        cursosList.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.codigo} - ${c.nombre}`;
+            select.appendChild(opt);
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadParticipantes() {
+    try {
+        const data = await API.get('usuarios', { rol: 'Participante' });
+        participantesList = data.usuarios || [];
+    } catch (e) { console.error(e); }
+}
+
+async function loadInscripciones() {
+    Loading.show('inscripciones-table');
+    try {
+        const buscar = document.getElementById('search-input').value;
+        const cursoId = document.getElementById('filter-curso').value;
+        const estado = document.getElementById('filter-estado').value;
+        const data = await API.get('inscripciones', { buscar, curso_id: cursoId, estado });
+        currentInscripciones = data.inscripciones || [];
+        renderInscripciones(currentInscripciones);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderInscripciones(inscripciones) {
+    const estadoBadge = {
+        'Inscrito': 'badge--primary',
+        'En Progreso': 'badge--info',
+        'Completado': 'badge--accent',
+        'Abandonado': 'badge--neutral',
+        'Reprobado': 'badge--danger'
+    };
+
+    DataTable.render('inscripciones-table', inscripciones, [
+        { label: 'Participante', key: 'nombre_estudiante', format: (v, r) => `<strong>${Utils.escapeHtml(v)}</strong><br><small>${r.cedula}</small>` },
+        { label: 'Curso', key: 'nombre_curso', format: (v, r) => `<small>${Utils.escapeHtml(v)}<br>${r.codigo_curso}</small>` },
+        { label: 'Fecha Inscripcion', key: 'fecha_inscripcion', format: (v) => `<small>${Utils.formatDate(v)}</small>` },
+        { label: 'Nota Final', key: 'nota_final', format: (v) => v ? `<span class="badge ${v >= 10 ? 'badge--accent' : 'badge--danger'}">${v}</span>` : '<span class="badge badge--neutral">-</span>' },
+        { label: 'Estado', key: 'estado', badge: estadoBadge }
+    ], {
+        actions: [
+            { icon: '✏️', title: 'Editar', class: 'btn btn--sm btn--ghost', onClick: (row) => `editInscripcion(${row.id})` },
+            { icon: '🗑️', title: 'Eliminar', class: 'btn btn--sm btn--danger', onClick: (row) => `deleteInscripcion(${row.id})` }
+        ]
+    });
+}
+
+function openInscripcionModal() {
+    const cursoOptions = cursosList.map(c => `<option value="${c.id}">${c.codigo} - ${Utils.escapeHtml(c.nombre)}</option>`).join('');
+    const participanteOptions = participantesList.map(p => `<option value="${p.id}">${p.cedula} - ${Utils.escapeHtml(p.nombre)} ${Utils.escapeHtml(p.apellidos)}</option>`).join('');
+
+    const content = `
+        <form id="inscripcion-form">
+            <div class="form-group">
+                <label class="form-label form-label--required">Curso</label>
+                <select class="form-select" id="inscripcion-curso" required>
+                    <option value="">Selecciona un curso</option>${cursoOptions}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label form-label--required">Participante</label>
+                <select class="form-select" id="inscripcion-usuario" required>
+                    <option value="">Selecciona un participante</option>${participanteOptions}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Observaciones</label>
+                <textarea id="inscripcion-obs" class="form-textarea" rows="2" placeholder="Observaciones opcionales"></textarea>
+            </div>
+        </form>
+    `;
+    const footer = `<button class="btn btn--ghost" onclick="Modal.close()">Cancelar</button><button class="btn btn--primary" onclick="saveInscripcion()">Inscribir</button>`;
+    Modal.open(content, { title: 'Nueva Inscripcion', footer });
+}
+
+function editInscripcion(id) {
+    const insc = currentInscripciones.find(i => i.id === id);
+    if (!insc) return;
+
+    const content = `
+        <form id="inscripcion-form">
+            <input type="hidden" id="inscripcion-id" value="${id}">
+            <div class="form-group">
+                <label class="form-label">Participante</label>
+                <input type="text" class="form-input" value="${Utils.escapeHtml(insc.nombre_estudiante)}" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Curso</label>
+                <input type="text" class="form-input" value="${Utils.escapeHtml(insc.nombre_curso)}" disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label form-label--required">Estado</label>
+                <select class="form-select" id="inscripcion-estado">
+                    <option value="Inscrito" ${insc.estado === 'Inscrito' ? 'selected' : ''}>Inscrito</option>
+                    <option value="En Progreso" ${insc.estado === 'En Progreso' ? 'selected' : ''}>En Progreso</option>
+                    <option value="Completado" ${insc.estado === 'Completado' ? 'selected' : ''}>Completado</option>
+                    <option value="Abandonado" ${insc.estado === 'Abandonado' ? 'selected' : ''}>Abandonado</option>
+                    <option value="Reprobado" ${insc.estado === 'Reprobado' ? 'selected' : ''}>Reprobado</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Observaciones</label>
+                <textarea id="inscripcion-obs" class="form-textarea" rows="2">${Utils.escapeHtml(insc.observaciones || '')}</textarea>
+            </div>
+        </form>
+    `;
+    const footer = `<button class="btn btn--ghost" onclick="Modal.close()">Cancelar</button><button class="btn btn--primary" onclick="updateInscripcion()">Guardar Cambios</button>`;
+    Modal.open(content, { title: 'Editar Inscripcion', footer });
+}
+
+async function saveInscripcion() {
+    const data = {
+        usuario_id: document.getElementById('inscripcion-usuario').value,
+        curso_id: document.getElementById('inscripcion-curso').value,
+        observaciones: document.getElementById('inscripcion-obs').value
+    };
+    if (!data.usuario_id || !data.curso_id) { Toast.show('Complete los campos requeridos', 'warning'); return; }
+    try {
+        await API.post('inscripcion', data);
+        Toast.show('Inscripcion realizada', 'success');
+        Modal.close(); loadInscripciones();
+    } catch (err) { Toast.show(err.message, 'error'); }
+}
+
+async function updateInscripcion() {
+    const id = document.getElementById('inscripcion-id').value;
+    const data = {
+        estado: document.getElementById('inscripcion-estado').value,
+        observaciones: document.getElementById('inscripcion-obs').value
+    };
+    try {
+        await API.put('inscripcion', id, data);
+        Toast.show('Inscripcion actualizada', 'success');
+        Modal.close(); loadInscripciones();
+    } catch (err) { Toast.show(err.message, 'error'); }
+}
+
+function deleteInscripcion(id) {
+    ConfirmDialog.open('Eliminar esta inscripcion?', async () => {
+        try { await API.delete('inscripcion', id); Toast.show('Inscripcion eliminada', 'success'); loadInscripciones(); }
+        catch (err) { Toast.show(err.message, 'error'); }
+    });
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+</script>
+
+</body>
+</html>

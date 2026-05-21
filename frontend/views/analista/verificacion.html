@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Verificacion - Analista | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Verificacion de Cursos</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Cursos Pendientes de Verificacion</h2>
+                    <p class="content__subtitle">Verifica y aprueba la informacion de los cursos</p>
+                </div>
+            </div>
+
+            <div class="grid grid--4" id="stats-container" style="margin-bottom: 1.5rem;">
+                <div class="stat-card skeleton" style="height: 120px;"></div>
+                <div class="stat-card skeleton" style="height: 120px;"></div>
+                <div class="stat-card skeleton" style="height: 120px;"></div>
+                <div class="stat-card skeleton" style="height: 120px;"></div>
+            </div>
+
+            <div class="card">
+                <div class="card__header">
+                    <h3 class="card__title">Cursos por Verificar</h3>
+                    <div class="d-flex gap-2">
+                        <select class="form-select" id="filter-estado" style="width: 160px;" onchange="loadCursos()">
+                            <option value="">Todos</option>
+                            <option value="Planificado">Planificados</option>
+                            <option value="En Curso">En Curso</option>
+                            <option value="Finalizado">Finalizados</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card__body" id="cursos-verificar">
+                    <div class="skeleton" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let currentCursos = [];
+
+(async function() {
+    await initDashboard();
+    await loadStats();
+    loadCursos();
+})();
+
+async function loadStats() {
+    try {
+        const data = await API.get('resumen');
+        if (data.success) {
+            const stats = [
+                { icon: '📋', cls: 'stat-card__icon--primary', value: data.cursos_planificados || 0, label: 'Planificados' },
+                { icon: '📚', cls: 'stat-card__icon--accent', value: data.cursos_activos || 0, label: 'En Curso' },
+                { icon: '👨‍🏫', cls: 'stat-card__icon--secondary', value: data.cursos_sin_facilitador || 0, label: 'Sin Facilitador' },
+                { icon: '✅', cls: 'stat-card__icon--info', value: data.cursos_verificados || 0, label: 'Verificados' }
+            ];
+            document.getElementById('stats-container').innerHTML = stats.map(s => `
+                <div class="stat-card">
+                    <div class="stat-card__header"><div class="stat-card__icon ${s.cls}">${s.icon}</div></div>
+                    <div class="stat-card__value">${Utils.formatNumber(s.value)}</div>
+                    <div class="stat-card__label">${s.label}</div>
+                </div>
+            `).join('');
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function loadCursos() {
+    Loading.show('cursos-verificar');
+    try {
+        const estado = document.getElementById('filter-estado').value;
+        const data = await API.get('cursos', { estado, verificacion: 1 });
+        currentCursos = data.cursos || [];
+        renderCursos(currentCursos);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderCursos(cursos) {
+    const estadoBadge = { 'Planificado': 'badge--primary', 'En Curso': 'badge--accent', 'Finalizado': 'badge--neutral' };
+
+    DataTable.render('cursos-verificar', cursos, [
+        { label: 'Codigo', key: 'codigo', format: (v, r) => `<strong>${v}</strong><br><small style="color:var(--color-text-muted)">${Utils.escapeHtml(r.nombre)}</small>` },
+        { label: 'Area/Nivel', key: 'area', format: (v, r) => `<small>${v || '-'}<br>${r.nivel}</small>` },
+        { label: 'Duracion', key: 'duracion_horas', format: (v) => `${v}h` },
+        { label: 'Facilitador', key: 'nombre_facilitador', format: (v) => v ? `<span style="color:var(--color-accent)">${Utils.escapeHtml(v)}</span>` : '<span style="color:var(--color-danger)">Sin asignar</span>' },
+        { label: 'Inscritos', key: 'total_inscritos', format: (v, r) => `${v || 0}/${r.cupo_maximo}` },
+        { label: 'Estado', key: 'estado', badge: estadoBadge },
+        { label: 'Verificado', key: 'analista_id', format: (v) => `<span class="badge ${v ? 'badge--accent' : 'badge--warning'}">${v ? 'Si' : 'Pendiente'}</span>` }
+    ], {
+        actions: [
+            { icon: '✅', title: 'Verificar', class: 'btn btn--sm btn--primary', onClick: (row) => `verificarCurso(${row.id})` }
+        ]
+    });
+}
+
+async function verificarCurso(id) {
+    try {
+        await API.put('curso-verificar', id, {});
+        Toast.show('Curso verificado correctamente', 'success');
+        loadCursos();
+        loadStats();
+    } catch (err) {
+        Toast.show(err.message, 'error');
+    }
+}
+</script>
+
+</body>
+</html>

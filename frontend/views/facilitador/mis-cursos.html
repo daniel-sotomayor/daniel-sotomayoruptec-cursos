@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Mis Cursos - Facilitador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Mis Cursos</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Mis Cursos Asignados</h2>
+                    <p class="content__subtitle">Gestiona los cursos que impartes</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Estado</label>
+                            <select class="form-select" id="filter-estado" style="width: 160px;" onchange="loadCursos()">
+                                <option value="">Todos</option>
+                                <option value="Planificado">Planificados</option>
+                                <option value="En Curso">En Curso</option>
+                                <option value="Finalizado">Finalizados</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cursos-grid">
+                <div class="skeleton" style="height: 300px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let currentCursos = [];
+
+(async function() {
+    await initDashboard();
+    loadCursos();
+})();
+
+async function loadCursos() {
+    const estado = document.getElementById('filter-estado').value;
+    document.getElementById('cursos-grid').innerHTML = '<div class="skeleton" style="height: 300px;"></div>';
+    
+    try {
+        const data = await API.get('mis-cursos', { estado });
+        currentCursos = data.cursos || [];
+        renderCursos(currentCursos);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderCursos(cursos) {
+    const container = document.getElementById('cursos-grid');
+    
+    if (!cursos.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state__icon">📚</div>
+                <div class="empty-state__title">No tienes cursos asignados</div>
+                <div class="empty-state__text">Los cursos que se te asignen apareceran aqui</div>
+            </div>`;
+        return;
+    }
+
+    const estadoClass = {
+        'Planificado': 'badge--primary',
+        'En Curso': 'badge--accent',
+        'Finalizado': 'badge--neutral'
+    };
+
+    container.innerHTML = `<div class="grid grid--2" style="gap: 1.5rem;">${cursos.map(c => `
+        <div class="card" style="border-left: 4px solid var(--color-${c.estado === 'En Curso' ? 'accent' : c.estado === 'Finalizado' ? 'neutral' : 'primary'});">
+            <div class="card__header" style="padding-bottom: 0.75rem;">
+                <div>
+                    <span class="badge ${estadoClass[c.estado] || 'badge--neutral'}">${c.estado}</span>
+                    <h3 class="card__title" style="margin-top: 0.5rem;">${Utils.escapeHtml(c.codigo)}</h3>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-primary);">${c.total_inscritos || 0}</div>
+                    <div style="font-size: 0.75rem; color: var(--color-text-muted);">inscritos</div>
+                </div>
+            </div>
+            <div class="card__body">
+                <h4 style="font-size: 1.0625rem; margin-bottom: 0.5rem;">${Utils.escapeHtml(c.nombre)}</h4>
+                <p style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">${Utils.escapeHtml(c.descripcion || 'Sin descripcion')}</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1rem; font-size: 0.8125rem;">
+                    <div><strong>Area:</strong> ${c.area || '-'}</div>
+                    <div><strong>Nivel:</strong> ${c.nivel}</div>
+                    <div><strong>Duracion:</strong> ${c.duracion_horas}h</div>
+                    <div><strong>Cupo:</strong> ${c.total_inscritos || 0}/${c.cupo_maximo}</div>
+                    <div><strong>Inicio:</strong> ${Utils.formatDate(c.fecha_inicio)}</div>
+                    <div><strong>Fin:</strong> ${Utils.formatDate(c.fecha_fin)}</div>
+                </div>
+                
+                ${c.promedio_general ? `
+                <div style="background: var(--color-bg); padding: 0.75rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+                    <div class="d-flex justify-between" style="font-size: 0.8125rem; margin-bottom: 0.25rem;">
+                        <span>Promedio General</span>
+                        <span style="font-weight: 600;">${c.promedio_general}</span>
+                    </div>
+                    <div style="background: var(--color-border-light); border-radius: var(--radius-full); height: 6px; overflow: hidden;">
+                        <div style="background: ${c.promedio_general >= 10 ? 'var(--color-accent)' : 'var(--color-warning)'}; height: 100%; border-radius: var(--radius-full); width: ${(c.promedio_general / 20 * 100)}%;"></div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            <div class="card__footer">
+                <a href="estudiantes.html?curso=${c.id}" class="btn btn--sm btn--primary">Ver Estudiantes</a>
+                <a href="calificaciones.html?curso=${c.id}" class="btn btn--sm btn--ghost">Calificaciones</a>
+            </div>
+        </div>
+    `).join('')}</div>`;
+}
+</script>
+
+</body>
+</html>

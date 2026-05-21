@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Sistema de Control de Cursos UPTEC - Universidad Politécnica Territorial de Caracas">
+    <meta name="author" content="UPTEC - David Suarez">
+    <title>Login | UPTEC Cursos</title>
+    <link rel="icon" href="img/favicon.ico" type="image/x-icon">
+    <style>
+        :root {
+            --uptec-blue: #0061f1;
+            --uptec-blue-dark: #004fa3;
+            --uptec-red: #e00000;
+            --uptec-orange: #ff5e00;
+            --uptec-green: #18ad72;
+            --white: #ffffff;
+            --black: #333333;
+            --gray: #666666;
+            --light-gray: #f8f9fa;
+            --error: #e74c3c;
+            --success: #2ecc71;
+            --shadow-sm: 0 2px 10px rgba(0,0,0,0.1);
+            --shadow-md: 0 10px 30px rgba(0,0,0,0.2);
+            --shadow-lg: 0 20px 50px rgba(0,0,0,0.3);
+            --transition-fast: 0.3s ease;
+            --transition-normal: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            --space-xs: 0.5rem;
+            --space-sm: 1rem;
+            --space-md: 1.5rem;
+            --space-lg: 2rem;
+            --space-xl: 3rem;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html { font-size: 16px; scroll-behavior: smooth; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--uptec-blue) 0%, var(--uptec-blue-dark) 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-sm);
+            overflow-x: hidden;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+            animation: rotate 30s linear infinite;
+            z-index: -1;
+        }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .uptec-logo {
+            position: absolute;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 100;
+        }
+        .uptec-logo img {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            background: white;
+            padding: 5px;
+            box-shadow: var(--shadow-md);
+        }
+        .uptec-logo h1 {
+            color: var(--white);
+            font-size: 1.2rem;
+            margin-top: 8px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .auth-wrapper {
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+            animation: fadeIn 0.8s ease;
+            margin-top: 80px;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .auth-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255,255,255,0.2);
+            min-height: 550px;
+            position: relative;
+        }
+        .info-panel {
+            padding: var(--space-xl);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: var(--white);
+            transition: var(--transition-normal);
+            position: relative;
+            z-index: 1;
+        }
+        .info-panel h2 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            margin-bottom: var(--space-sm);
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .info-panel p {
+            font-size: clamp(0.9rem, 1.5vw, 1rem);
+            opacity: 0.9;
+            margin-bottom: var(--space-lg);
+            line-height: 1.6;
+            max-width: 280px;
+        }
+        .info-login {
+            background: linear-gradient(135deg, rgba(0, 97, 241, 0.3) 0%, transparent 100%);
+        }
+        .info-register {
+            background: linear-gradient(225deg, rgba(224, 0, 0, 0.3) 0%, transparent 100%);
+        }
+        .auth-container.register-mode .info-login {
+            opacity: 0.4;
+            transform: scale(0.95);
+        }
+        .auth-container.login-mode .info-register {
+            opacity: 0.4;
+            transform: scale(0.95);
+        }
+        .btn-switch {
+            padding: 12px 32px;
+            border: 2px solid var(--white);
+            background: transparent;
+            color: var(--white);
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .btn-switch::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: var(--white);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+        .btn-switch:hover::before, .btn-switch:active::before { left: 0; }
+        .btn-switch:hover, .btn-switch:active {
+            color: var(--uptec-blue);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .form-slider {
+            position: absolute;
+            top: 50%; left: 5%;
+            transform: translateY(-50%);
+            width: 45%; height: 90%;
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+            transition: var(--transition-bounce);
+            z-index: 10;
+            overflow: hidden;
+        }
+        .auth-container.register-mode .form-slider {
+            left: 50%;
+            background: linear-gradient(135deg, var(--uptec-red) 0%, var(--uptec-orange) 100%);
+        }
+        .form-wrapper {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow-y: auto;
+            transition: var(--transition-normal);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(30px);
+        }
+        .form-wrapper.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+        .form-wrapper.inactive {
+            transform: translateX(-30px);
+        }
+        .form-header {
+            text-align: center;
+            margin-bottom: 0.75rem;
+            flex-shrink: 0;
+        }
+        .form-header h2 {
+            font-size: clamp(1.5rem, 3vw, 1.8rem);
+            margin-bottom: var(--space-xs);
+            font-weight: 700;
+        }
+        .form-header p {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        .form-login .form-header h2 { color: var(--uptec-blue); }
+        .form-login .form-header p { color: var(--gray); }
+        .form-register .form-header h2 { color: var(--white); }
+        .form-register .form-header p { color: rgba(255,255,255,0.8); }
+        .input-group {
+            position: relative;
+            margin-bottom: 0.6rem;
+            flex-shrink: 0;
+        }
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.1rem;
+            transition: var(--transition-fast);
+            pointer-events: none;
+        }
+        .input-field {
+            width: 100%;
+            padding: 10px 12px 10px 42px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: var(--transition-fast);
+            background: var(--light-gray);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .form-register .input-field {
+            background: rgba(255,255,255,0.15);
+            border-color: rgba(255,255,255,0.3);
+            color: var(--white);
+            padding: 10px 12px 10px 42px;
+            font-size: 0.9rem;
+        }
+        .form-register .input-field::placeholder {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.85rem;
+        }
+        .form-login .input-field:focus {
+            border-color: var(--uptec-blue);
+            background: var(--white);
+            box-shadow: 0 0 0 4px rgba(0, 97, 241, 0.1);
+            transform: translateY(-2px);
+        }
+        .form-register .input-field:focus {
+            border-color: var(--white);
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        .form-login .input-icon { color: #999; }
+        .form-login .input-field:focus + .input-icon { color: var(--uptec-blue); }
+        .form-register .input-icon { color: rgba(255,255,255,0.7); }
+        .form-register .input-field:focus + .input-icon { color: var(--white); }
+        /* Selector de Rol */
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 0.6rem;
+            flex-shrink: 0;
+        }
+        .role-option {
+            position: relative;
+            cursor: pointer;
+        }
+        .role-option input {
+            position: absolute;
+            opacity: 0;
+        }
+        .role-card {
+            padding: 8px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            text-align: center;
+            transition: var(--transition-fast);
+            background: rgba(255,255,255,0.1);
+        }
+        .role-option input:checked + .role-card {
+            border-color: var(--white);
+            background: rgba(255,255,255,0.25);
+            transform: scale(1.02);
+        }
+        .role-icon {
+            font-size: 1.5rem;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .role-label {
+            font-size: 0.85rem;
+            color: var(--white);
+            font-weight: 600;
+        }
+        /* Select de Area */
+        .select-field {
+            width: 100%;
+            padding: 10px 12px 10px 42px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: rgba(255,255,255,0.15);
+            color: var(--white);
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .select-field option {
+            background: var(--uptec-blue-dark);
+            color: var(--white);
+        }
+        .select-field:focus {
+            border-color: var(--white);
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 0 0 4px rgba(255,255,255,0.2);
+        }
+        .area-field {
+            transition: var(--transition-fast);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .area-field.hidden {
+            height: 0;
+            margin: 0;
+            opacity: 0;
+            display: none;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            margin-top: 0.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+        }
+        .btn-submit:active { transform: scale(0.98); }
+        .form-login .btn-submit {
+            background: linear-gradient(135deg, var(--uptec-blue) 0%, var(--uptec-blue-dark) 100%);
+            color: var(--white);
+        }
+        .form-login .btn-submit:hover, .form-login .btn-submit:active {
+            box-shadow: 0 10px 25px rgba(0, 97, 241, 0.4);
+            transform: translateY(-2px);
+        }
+        .form-register .btn-submit {
+            background: var(--white);
+            color: var(--uptec-red);
+        }
+        .form-register .btn-submit:hover, .form-register .btn-submit:active {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+        .btn-submit.loading {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+        .btn-submit.loading .spinner { display: block; }
+        .btn-submit.loading .btn-text { opacity: 0.7; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .form-footer {
+            margin-top: var(--space-md);
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        .form-login .form-footer { color: var(--gray); }
+        .form-register .form-footer { color: rgba(255,255,255,0.8); }
+        .form-footer a {
+            color: var(--uptec-blue);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        .form-register .form-footer a {
+            color: var(--white);
+            text-decoration: underline;
+        }
+        .form-register .form-footer a:hover { opacity: 0.8; }
+
+        /* ===== SISTEMA DE NOTIFICACIONES TOAST ===== */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .toast {
+            background: white;
+            border-radius: 12px;
+            padding: 16px 20px;
+            min-width: 320px;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: toastSlideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: all;
+            border-left: 4px solid;
+        }
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateX(100%) scale(0.8); }
+            to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes toastSlideOut {
+            from { opacity: 1; transform: translateX(0) scale(1); }
+            to { opacity: 0; transform: translateX(100%) scale(0.8); }
+        }
+        .toast.toast-exit {
+            animation: toastSlideOut 0.3s ease forwards;
+        }
+        .toast-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .toast-content {
+            flex: 1;
+        }
+        .toast-title {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .toast-message {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast-close:hover { opacity: 1; }
+        .toast-error {
+            border-color: #e74c3c;
+            background: linear-gradient(135deg, #fff 0%, #fff5f5 100%);
+        }
+        .toast-error .toast-icon { background: #fee; color: #e74c3c; }
+        .toast-error .toast-title { color: #c0392b; }
+        .toast-error .toast-message { color: #666; }
+        .toast-error .toast-close { color: #e74c3c; }
+        .toast-success {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, #fff 0%, #f0fff4 100%);
+        }
+        .toast-success .toast-icon { background: #efe; color: #27ae60; }
+        .toast-success .toast-title { color: #219a52; }
+        .toast-success .toast-message { color: #666; }
+        .toast-success .toast-close { color: #27ae60; }
+
+        /* Ocultar alertas antiguas */
+        .alert { display: none !important; }
+
+        @media (max-width: 768px) {
+            html { font-size: 14px; }
+            body { padding: 0; align-items: flex-start; min-height: 100vh; }
+            .uptec-logo { position: relative; top: 10px; margin-bottom: 20px; }
+            .auth-wrapper { max-width: 100%; animation: none; margin-top: 10px; }
+            .auth-container {
+                display: flex;
+                flex-direction: column;
+                border-radius: 0;
+                min-height: 100vh;
+                background: transparent;
+                backdrop-filter: none;
+                box-shadow: none;
+                border: none;
+            }
+            .info-panel { padding: var(--space-lg) var(--space-md); min-height: auto; }
+            .info-panel h2 { font-size: 1.5rem; }
+            .info-panel p { font-size: 0.9rem; margin-bottom: var(--space-md); }
+            .auth-container.login-mode .info-register, .auth-container.register-mode .info-login { display: none; }
+            .auth-container.login-mode .info-login, .auth-container.register-mode .info-register {
+                opacity: 1;
+                transform: none;
+                background: rgba(255,255,255,0.1);
+                border-radius: 16px;
+                margin: var(--space-sm);
+                margin-bottom: 0;
+            }
+            .form-slider {
+                position: relative;
+                top: auto; left: auto !important;
+                transform: none;
+                width: calc(100% - var(--space-lg));
+                height: auto;
+                min-height: 450px;
+                margin: var(--space-md) auto;
+                background: var(--white) !important;
+                border-radius: 20px;
+                box-shadow: var(--shadow-lg);
+            }
+            .form-register .form-header h2 { color: var(--uptec-blue); }
+            .form-register .form-header p { color: var(--gray); }
+            .form-register .input-field {
+                background: var(--light-gray);
+                border-color: #e0e0e0;
+                color: var(--black);
+            }
+            .form-register .input-field::placeholder { color: #999; }
+            .form-register .input-icon { color: #999; }
+            .form-register .btn-submit {
+                background: linear-gradient(135deg, var(--uptec-red) 0%, var(--uptec-orange) 100%);
+                color: var(--white);
+            }
+            .form-register .form-footer { color: var(--gray); }
+            .form-register .form-footer a { color: var(--uptec-blue); text-decoration: none; }
+            .form-wrapper {
+                padding: var(--space-lg) var(--space-md);
+                position: relative;
+                transform: none !important;
+            }
+            .form-wrapper.inactive { display: none; }
+            .form-wrapper.active { opacity: 1; visibility: visible; }
+            .btn-switch { padding: 14px 28px; font-size: 1rem; }
+            .btn-submit { padding: 16px; font-size: 1.05rem; }
+            .input-field { padding: 16px 15px 16px 48px; font-size: 16px; }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .auth-wrapper { max-width: 95%; }
+            .info-panel { padding: var(--space-lg); }
+            .form-slider { width: 48%; }
+            .auth-container.register-mode .form-slider { left: 48%; }
+        }
+        @media (min-width: 1400px) {
+            .auth-wrapper { max-width: 1000px; }
+            .form-slider { width: 40%; }
+            .auth-container.register-mode .form-slider { left: 55%; }
+        }
+        @media (max-height: 600px) and (orientation: landscape) {
+            .auth-container { min-height: auto; }
+            .info-panel { padding: var(--space-md); }
+            .form-slider { min-height: 380px; }
+            .form-wrapper { padding: var(--space-md); }
+            .input-group { margin-bottom: var(--space-sm); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="uptec-logo">
+        <img src="img/logo-uptec.png" alt="UPTEC" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>'">
+        <h1>UPTEC Cursos</h1>
+    </div>
+
+    <div class="auth-wrapper">
+        <div class="auth-container login-mode" id="authContainer">
+            <div class="info-panel info-login">
+                <h2>¿Ya tienes cuenta?</h2>
+                <p>Inicia sesión para acceder a tu panel de control y gestionar tus cursos</p>
+                <button class="btn-switch" onclick="switchMode('login')" type="button">← Iniciar Sesión</button>
+            </div>
+            <div class="info-panel info-register">
+                <h2>¿Eres nuevo?</h2>
+                <p>Únete a la Universidad Politécnica Territorial de Caracas "Mariscal Sucre"</p>
+                <button class="btn-switch" onclick="switchMode('register')" type="button">Crear Cuenta →</button>
+            </div>
+            <div class="form-slider" id="formSlider">
+                <form class="form-wrapper form-login active" id="loginForm" onsubmit="handleLogin(event)" novalidate>
+                    <div class="alert error" id="loginAlert">
+                        <span>⚠️</span><span id="loginAlertText">Error en credenciales</span>
+                    </div>
+                    <div class="form-header">
+                        <h2>Bienvenido</h2>
+                        <p>Ingresa tus credenciales de acceso</p>
+                    </div>
+                    <div class="input-group">
+                        <input type="email" class="input-field" id="loginEmail" placeholder="Correo electrónico" required autocomplete="email" inputmode="email">
+                        <span class="input-icon">✉️</span>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" class="input-field" id="loginPassword" placeholder="Contraseña" required autocomplete="current-password" minlength="6">
+                        <span class="input-icon">🔒</span>
+                    </div>
+                    <button type="submit" class="btn-submit" id="loginBtn">
+                        <span class="btn-text">Entrar al Sistema</span>
+                        <div class="spinner"></div>
+                    </button>
+                    <div class="form-footer">
+                        ¿Olvidaste tu contraseña? <a onclick="alert('Contacte al administrador del sistema')">Recuperar</a>
+                    </div>
+                </form>
+                <form class="form-wrapper form-register" id="registerForm" onsubmit="handleRegister(event)" novalidate>
+                    <div class="alert error" id="registerAlert">
+                        <span>⚠️</span><span id="registerAlertText">Error en el registro</span>
+                    </div>
+                    <div class="form-header" style="margin-bottom: 0.5rem;">
+                        <h2 style="font-size: 1.4rem; margin-bottom: 0.2rem;">Crear Cuenta</h2>
+                        <p style="font-size: 0.8rem;">Únete a UPTEC</p>
+                    </div>
+
+                    <!-- Selector de Rol -->
+                    <div class="role-selector">
+                        <label class="role-option">
+                            <input type="radio" name="rol" value="Participante" checked onchange="toggleAreaField()">
+                            <div class="role-card">
+                                <span class="role-icon">👨‍🎓</span>
+                                <span class="role-label">Participante</span>
+                            </div>
+                        </label>
+                        <label class="role-option">
+                            <input type="radio" name="rol" value="Facilitador" onchange="toggleAreaField()">
+                            <div class="role-card">
+                                <span class="role-icon">👨‍🏫</span>
+                                <span class="role-label">Facilitador</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="text" class="input-field" id="regCedula" placeholder="Cédula (32361670)" required autocomplete="off" maxlength="9" pattern="^\\d{6,9}$">
+                        <span class="input-icon">🆔</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="input-group">
+                            <input type="text" class="input-field" id="regNombre" placeholder="Nombre" required autocomplete="given-name" minlength="2">
+                            <span class="input-icon">👤</span>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" class="input-field" id="regApellidos" placeholder="Apellidos" required autocomplete="family-name" minlength="2">
+                            <span class="input-icon">👤</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="email" class="input-field" id="regEmail" placeholder="Correo electrónico" required autocomplete="email" inputmode="email">
+                        <span class="input-icon">✉️</span>
+                    </div>
+
+                    <div class="input-group">
+                        <input type="tel" class="input-field" id="regTelefono" placeholder="Teléfono (04242987214)" required autocomplete="tel" inputmode="tel" pattern="^04\\d{9}$" maxlength="11">
+                        <span class="input-icon">📱</span>
+                    </div>
+
+                    <!-- Campo de Area/Carrera - Solo para Participantes -->
+                    <div class="input-group area-field" id="areaFieldGroup">
+                        <select class="select-field" id="regArea" required>
+                            <option value="">Selecciona tu carrera</option>
+                            <option value="Administracion">Administración</option>
+                            <option value="Informatica">Informática</option>
+                            <option value="Mecanica">Mecánica</option>
+                            <option value="Electrica">Eléctrica</option>
+                            <option value="Mantenimiento">Mantenimiento</option>
+                            <option value="Transporte Ferroviario">Transporte Ferroviario</option>
+                            <option value="Externo">Externo</option>
+                        </select>
+                        <span class="input-icon">🎓</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="input-group">
+                            <input type="password" class="input-field" id="regPassword" placeholder="Contraseña" required minlength="6" autocomplete="new-password">
+                            <span class="input-icon">🔒</span>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" class="input-field" id="regPasswordConfirm" placeholder="Confirmar" required minlength="6" autocomplete="new-password">
+                            <span class="input-icon">🔐</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="registerBtn">
+                        <span class="btn-text">Crear Cuenta</span>
+                        <div class="spinner"></div>
+                    </button>
+                    <div class="form-footer">
+                        ¿Ya tienes cuenta? <a onclick="switchMode('login')">Iniciar sesión</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * CONTROLADOR PRINCIPAL
+         * Gestiona el cambio entre login y registro
+         */
+        
+        const API_BASE_URL = '/uptec-cursos/backend/api/api.php';
+        const container = document.getElementById('authContainer');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        
+        let currentMode = 'login';
+        let isAnimating = false;
+
+        /**
+         * Cambia entre modos login y register
+         * @param {string} mode - 'login' o 'register'
+         */
+        function switchMode(mode) {
+            if (isAnimating || mode === currentMode) return;
+            
+            isAnimating = true;
+            currentMode = mode;
+
+            if (mode === 'register') {
+                container.classList.remove('login-mode');
+                container.classList.add('register-mode');
+                animateFormTransition(loginForm, registerForm);
+            } else {
+                container.classList.remove('register-mode');
+                container.classList.add('login-mode');
+                animateFormTransition(registerForm, loginForm);
+            }
+
+            setTimeout(() => {
+                isAnimating = false;
+            }, 600);
+        }
+
+        /**
+         * Anima la transición entre formularios
+         */
+        function animateFormTransition(fromForm, toForm) {
+            fromForm.classList.remove('active');
+            fromForm.classList.add('inactive');
+
+            setTimeout(() => {
+                fromForm.classList.remove('inactive');
+                fromForm.style.visibility = 'hidden';
+                
+                toForm.style.visibility = 'visible';
+                toForm.classList.add('active');
+                
+                hideAlerts();
+            }, 200);
+        }
+
+        /**
+         * Maneja el envío del formulario de login
+         */
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const btn = form.querySelector('.btn-submit');
+            const alertBox = form.querySelector('.alert');
+            const alertText = document.getElementById('loginAlertText');
+            
+            // Validación básica
+            if (!form.checkValidity()) {
+                showAlert(alertBox, alertText, 'Por favor completa todos los campos correctamente', 'error');
+                shakeElement(form);
+                return;
+            }
+
+            // Estado de carga
+            setLoading(btn, true);
+            showToast('Iniciando sesión...', 'success');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}?endpoint=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('loginEmail').value,
+                        password: document.getElementById('loginPassword').value
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Guardar sesion
+                    localStorage.setItem('uptec_token', data.token);
+                    localStorage.setItem('uptec_user', JSON.stringify(data.user));
+
+                    showToast(`¡Bienvenido! ${data.user.nombre}`, 'success');
+
+                    // Redirección según rol
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    showToast(data.error || 'Credenciales incorrectas', 'error');
+                    setLoading(btn, false);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showToast('Error de conexión. Intente más tarde.', 'error');
+                setLoading(btn, false);
+            }
+        }
+
+        /**
+         * Valida el formulario de registro campo por campo
+         */
+        function validateRegisterForm() {
+            const fields = [
+                { id: 'regCedula', name: 'Cédula', pattern: /^\d{6,9}$/, example: '32361670' },
+                { id: 'regNombre', name: 'Nombre', minLength: 2 },
+                { id: 'regApellidos', name: 'Apellidos', minLength: 2 },
+                { id: 'regEmail', name: 'Correo electrónico', type: 'email' },
+                { id: 'regTelefono', name: 'Teléfono', pattern: /^04\d{9}$/, example: '04242987214' }
+            ];
+
+            for (const field of fields) {
+                const element = document.getElementById(field.id);
+                const value = element.value.trim();
+
+                if (!value) {
+                    return { valid: false, message: `El campo "${field.name}" está vacío` };
+                }
+
+                if (field.pattern && !field.pattern.test(value)) {
+                    const exampleText = field.example ? ` (Ejemplo: ${field.example})` : '';
+                    return { valid: false, message: `El campo "${field.name}" tiene formato incorrecto${exampleText}` };
+                }
+
+                if (field.minLength && value.length < field.minLength) {
+                    return { valid: false, message: `El campo "${field.name}" debe tener al menos ${field.minLength} caracteres` };
+                }
+
+                if (field.type === 'email' && !value.includes('@')) {
+                    return { valid: false, message: `El "${field.name}" debe contener @` };
+                }
+            }
+
+            // Validar área si es participante
+            const rol = document.querySelector('input[name="rol"]:checked').value;
+            if (rol === 'Participante') {
+                const area = document.getElementById('regArea').value;
+                if (!area) {
+                    return { valid: false, message: 'Debes seleccionar tu carrera/área' };
+                }
+            }
+
+            // Validar contraseñas
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+            if (!password) {
+                return { valid: false, message: 'El campo "Contraseña" está vacío' };
+            }
+            if (password.length < 6) {
+                return { valid: false, message: 'La contraseña debe tener al menos 6 caracteres' };
+            }
+            if (password !== passwordConfirm) {
+                return { valid: false, message: 'Las contraseñas no coinciden' };
+            }
+
+            return { valid: true };
+        }
+
+        /**
+         * Maneja el envío del formulario de registro
+         */
+        async function handleRegister(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const btn = form.querySelector('.btn-submit');
+            const alertBox = form.querySelector('.alert');
+            const alertText = document.getElementById('registerAlertText');
+
+            // Validación específica campo por campo
+            const validation = validateRegisterForm();
+            if (!validation.valid) {
+                showToast(validation.message, 'error');
+                shakeElement(form);
+                return;
+            }
+
+            // Obtener rol seleccionado
+            const rol = document.querySelector('input[name="rol"]:checked').value;
+
+            // Validar area si es participante
+            let area = null;
+            if (rol === 'Participante') {
+                area = document.getElementById('regArea').value;
+            }
+
+            // Estado de carga
+            setLoading(btn, true);
+            showToast('Procesando registro...', 'success');
+
+            // Obtener valores de contraseña
+            const password = document.getElementById('regPassword').value;
+            const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+            const regData = {
+                cedula: document.getElementById('regCedula').value,
+                nombre: document.getElementById('regNombre').value,
+                apellidos: document.getElementById('regApellidos').value,
+                correo: document.getElementById('regEmail').value,
+                telefono: document.getElementById('regTelefono').value,
+                password: password,
+                password_confirm: passwordConfirm,
+                rol: rol,
+                area: area
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}?endpoint=register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(regData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('¡Cuenta creada exitosamente!', 'success');
+
+                    // Volver al login después de registro exitoso
+                    setTimeout(() => {
+                        document.getElementById('loginEmail').value = regData.correo;
+                        switchMode('login');
+                    }, 1500);
+                } else {
+                    // Manejar errores de validación (data.errors) o error general (data.error)
+                    let errorMsg = 'Error al crear cuenta';
+                    if (data.errors && Object.keys(data.errors).length > 0) {
+                        // Tomar el primer error de validación
+                        errorMsg = Object.values(data.errors)[0];
+                    } else if (data.error) {
+                        errorMsg = data.error;
+                    }
+                    showToast(errorMsg, 'error');
+                    setLoading(btn, false);
+                }
+            } catch (error) {
+                showToast('Error de conexión. Intente más tarde.', 'error');
+                setLoading(btn, false);
+            }
+        }
+
+        /**
+         * Muestra/oculta campo de area segun el rol seleccionado
+         */
+        function toggleAreaField() {
+            const rol = document.querySelector('input[name="rol"]:checked').value;
+            const areaGroup = document.getElementById('areaFieldGroup');
+            const areaSelect = document.getElementById('regArea');
+
+            if (rol === 'Participante') {
+                areaGroup.classList.remove('hidden');
+                areaSelect.setAttribute('required', 'required');
+            } else {
+                areaGroup.classList.add('hidden');
+                areaSelect.removeAttribute('required');
+                areaSelect.value = '';
+            }
+        }
+
+        /**
+         * Muestra notificación toast emergente
+         */
+        function showToast(message, type = 'error') {
+            const container = document.getElementById('toastContainer');
+            
+            const icons = {
+                error: '❌',
+                success: '✅',
+                warning: '⚠️'
+            };
+            
+            const titles = {
+                error: 'Error',
+                success: '¡Éxito!',
+                warning: 'Atención'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type]}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${titles[type]}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Auto-eliminar después de 5 segundos
+            setTimeout(() => {
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        /**
+         * Función legacy compatible - ahora usa toast
+         */
+        function showAlert(alertBoxOrMessage, textElementOrType, messageOrNothing, typeOrNothing) {
+            // Detectar si es la forma antigua (4 params) o nueva (2 params)
+            if (typeof textElementOrType === 'string') {
+                // Nueva forma: showAlert(message, type)
+                showToast(alertBoxOrMessage, textElementOrType);
+            } else {
+                // Forma antigua: showAlert(alertBox, textElement, message, type)
+                showToast(messageOrNothing, typeOrNothing);
+            }
+        }
+
+        /**
+         * Oculta todas las alertas (legacy - no hace nada con toast)
+         */
+        function hideAlerts() {
+            // Las toasts se cierran solas o manualmente
+        }
+
+        /**
+         * Activa/desactiva estado de carga en botón
+         */
+        function setLoading(btn, loading) {
+            if (loading) {
+                btn.classList.add('loading');
+                btn.disabled = true;
+            } else {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        /**
+         * Efecto shake para errores de validación
+         */
+        function shakeElement(element) {
+            element.style.animation = 'shake 0.5s ease';
+            setTimeout(() => {
+                element.style.animation = '';
+            }, 500);
+        }
+
+        // Agregar keyframes de shake dinámicamente
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                25% { transform: translateX(-10px); }
+                75% { transform: translateX(10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // ==========================================
+        // EVENTOS GLOBALES
+        // ==========================================
+
+        // Tecla ESC para volver al login
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentMode === 'register') {
+                switchMode('login');
+            }
+        });
+
+        // Detectar hash en URL para modo directo
+        window.addEventListener('load', () => {
+            if (window.location.hash === '#register') {
+                setTimeout(() => switchMode('register'), 100);
+            }
+        });
+
+        // Prevenir zoom en inputs en iOS
+        document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+        // Manejar cambio de orientación en móviles
+        window.addEventListener('orientationchange', () => {
+            // Forzar reflow para corregir posiciones
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+        });
+    </script>
+</body>
+</html>

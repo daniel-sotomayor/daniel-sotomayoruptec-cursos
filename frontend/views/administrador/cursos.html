@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Cursos - Administrador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Gestion de Cursos</h1>
+            <div class="header__actions">
+                <div class="header__search">
+                    <svg class="header__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="header__search-input" placeholder="Buscar curso..." id="search-input">
+                </div>
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Cursos del Sistema</h2>
+                    <p class="content__subtitle">Administra todos los cursos academicos</p>
+                </div>
+                <button class="btn btn--primary" onclick="openCourseModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nuevo Curso
+                </button>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Estado</label>
+                            <select class="form-select" id="filter-estado" style="width: 160px;" onchange="loadCursos()">
+                                <option value="">Todos</option>
+                                <option value="Planificado">Planificado</option>
+                                <option value="En Curso">En Curso</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="cursos-table">
+                <div class="skeleton" style="height: 300px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let currentCursos = [];
+
+(async function() {
+    await initDashboard();
+    loadCursos();
+    document.getElementById('search-input').addEventListener('input', debounce(() => loadCursos(), 300));
+})();
+
+async function loadCursos() {
+    Loading.show('cursos-table');
+    try {
+        const buscar = document.getElementById('search-input').value;
+        const estado = document.getElementById('filter-estado').value;
+        const data = await API.get('cursos', { buscar, estado });
+        currentCursos = data.cursos || [];
+        renderCursos(currentCursos);
+    } catch (err) {
+        Toast.show('Error cargando cursos: ' + err.message, 'error');
+    }
+}
+
+function renderCursos(cursos) {
+    const estadoBadge = {
+        'Planificado': 'badge--primary',
+        'En Curso': 'badge--accent',
+        'Finalizado': 'badge--neutral',
+        'Cancelado': 'badge--danger'
+    };
+
+    DataTable.render('cursos-table', cursos, [
+        { label: 'Codigo', key: 'codigo', format: (v, r) => `<strong>${v}</strong><br><small style="color:var(--color-text-muted)">${Utils.escapeHtml(r.nombre)}</small>` },
+        { label: 'Area/Nivel', key: 'area', format: (v, r) => `<small>${v || '-'}<br>${r.nivel}</small>` },
+        { label: 'Duracion', key: 'duracion_horas', format: (v) => `${v}h` },
+        { label: 'Facilitador', key: 'nombre_facilitador', format: (v) => `<small>${v || 'Sin asignar'}</small>` },
+        { label: 'Inscritos', key: 'total_inscritos', format: (v, r) => `${v || 0} / ${r.cupo_maximo}` },
+        { label: 'Estado', key: 'estado', badge: estadoBadge },
+        { label: 'Fechas', key: 'fecha_inicio', format: (v, r) => `<small>${Utils.formatDate(v)}<br>${Utils.formatDate(r.fecha_fin)}</small>` }
+    ], {
+        actions: [
+            { icon: '👁️', title: 'Ver', class: 'btn btn--sm btn--ghost', onClick: (row) => `viewCourse(${row.id})` },
+            { icon: '✏️', title: 'Editar', class: 'btn btn--sm btn--ghost', onClick: (row) => `openCourseModal(${row.id})` },
+            { icon: '🗑️', title: 'Eliminar', class: 'btn btn--sm btn--danger', onClick: (row) => `deleteCourse(${row.id})` }
+        ]
+    });
+}
+
+function openCourseModal(id) {
+    const curso = id ? currentCursos.find(c => c.id === id) : null;
+
+    const content = `
+        <form id="course-form">
+            <input type="hidden" id="course-id" value="${curso ? curso.id : ''}">
+            <div class="d-grid grid--2 gap-3">
+                <div class="form-group">
+                    <label class="form-label form-label--required">Codigo</label>
+                    <input type="text" id="course-codigo" class="form-input" placeholder="PROG-001" value="${curso ? curso.codigo : ''}" ${curso ? 'disabled' : ''} required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label form-label--required">Nombre</label>
+                    <input type="text" id="course-nombre" class="form-input" value="${curso ? Utils.escapeHtml(curso.nombre) : ''}" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Descripcion</label>
+                <textarea id="course-descripcion" class="form-textarea" rows="3">${curso ? Utils.escapeHtml(curso.descripcion || '') : ''}</textarea>
+            </div>
+            <div class="d-grid grid--3 gap-3">
+                <div class="form-group">
+                    <label class="form-label form-label--required">Duracion (horas)</label>
+                    <input type="number" id="course-duracion" class="form-input" value="${curso ? curso.duracion_horas : ''}" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label form-label--required">Cupo Maximo</label>
+                    <input type="number" id="course-cupo" class="form-input" value="${curso ? curso.cupo_maximo : '30'}" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nivel</label>
+                    <select class="form-select" id="course-nivel">
+                        <option value="Basico" ${curso && curso.nivel === 'Basico' ? 'selected' : ''}>Basico</option>
+                        <option value="Intermedio" ${curso && curso.nivel === 'Intermedio' ? 'selected' : ''}>Intermedio</option>
+                        <option value="Avanzado" ${curso && curso.nivel === 'Avanzado' ? 'selected' : ''}>Avanzado</option>
+                    </select>
+                </div>
+            </div>
+            <div class="d-grid grid--2 gap-3">
+                <div class="form-group">
+                    <label class="form-label">Fecha Inicio</label>
+                    <input type="date" id="course-fecha-inicio" class="form-input" value="${curso ? curso.fecha_inicio : ''}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha Fin</label>
+                    <input type="date" id="course-fecha-fin" class="form-input" value="${curso ? curso.fecha_fin : ''}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Area</label>
+                <select class="form-select" id="course-area">
+                    <option value="">Seleccione un area</option>
+                    <option value="Administracion" ${curso && curso.area === 'Administracion' ? 'selected' : ''}>Administracion</option>
+                    <option value="Informatica" ${curso && curso.area === 'Informatica' ? 'selected' : ''}>Informatica</option>
+                    <option value="Mecanica" ${curso && curso.area === 'Mecanica' ? 'selected' : ''}>Mecanica</option>
+                    <option value="Electrica" ${curso && curso.area === 'Electrica' ? 'selected' : ''}>Electrica</option>
+                    <option value="Mantenimiento" ${curso && curso.area === 'Mantenimiento' ? 'selected' : ''}>Mantenimiento</option>
+                    <option value="Transporte Ferroviario" ${curso && curso.area === 'Transporte Ferroviario' ? 'selected' : ''}>Transporte Ferroviario</option>
+                </select>
+            </div>
+            ${curso ? `
+            <div class="form-group">
+                <label class="form-label">Estado</label>
+                <select class="form-select" id="course-estado">
+                    <option value="Planificado" ${curso.estado === 'Planificado' ? 'selected' : ''}>Planificado</option>
+                    <option value="En Curso" ${curso.estado === 'En Curso' ? 'selected' : ''}>En Curso</option>
+                    <option value="Finalizado" ${curso.estado === 'Finalizado' ? 'selected' : ''}>Finalizado</option>
+                    <option value="Cancelado" ${curso.estado === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+                </select>
+            </div>
+            ` : ''}
+        </form>
+    `;
+
+    const footer = `
+        <button class="btn btn--ghost" onclick="Modal.close()">Cancelar</button>
+        <button class="btn btn--primary" onclick="saveCourse()">${curso ? 'Guardar Cambios' : 'Crear Curso'}</button>
+    `;
+
+    Modal.open(content, { title: curso ? 'Editar Curso' : 'Nuevo Curso', footer });
+}
+
+async function saveCourse() {
+    const id = document.getElementById('course-id').value;
+    const codigo = document.getElementById('course-codigo').value.trim();
+    const nombre = document.getElementById('course-nombre').value.trim();
+    const descripcion = document.getElementById('course-descripcion').value;
+    const duracion_horas = document.getElementById('course-duracion').value;
+    const cupo_maximo = document.getElementById('course-cupo').value;
+    const nivel = document.getElementById('course-nivel').value;
+    const fecha_inicio = document.getElementById('course-fecha-inicio').value;
+    const fecha_fin = document.getElementById('course-fecha-fin').value;
+    const area = document.getElementById('course-area').value;
+
+    if (!codigo || !nombre || !duracion_horas || !cupo_maximo) {
+        Toast.show('Complete los campos requeridos', 'warning'); return;
+    }
+
+    try {
+        if (id) {
+            const estado = document.getElementById('course-estado').value;
+            await API.put('curso', id, { nombre, descripcion, duracion_horas, cupo_maximo, nivel, fecha_inicio, fecha_fin, area, estado });
+            Toast.show('Curso actualizado', 'success');
+        } else {
+            await API.post('curso', { codigo, nombre, descripcion, duracion_horas, cupo_maximo, nivel, fecha_inicio, fecha_fin, area });
+            Toast.show('Curso creado', 'success');
+        }
+        Modal.close(); loadCursos();
+    } catch (err) { Toast.show(err.message || 'Error guardando curso', 'error'); }
+}
+
+async function viewCourse(id) {
+    try {
+        const data = await API.get('curso', { id });
+        const curso = data.curso;
+        if (!curso) { Toast.show('Curso no encontrado', 'error'); return; }
+
+        const content = `
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem">
+                <div><strong>Codigo:</strong> ${Utils.escapeHtml(curso.codigo)}</div>
+                <div><strong>Nombre:</strong> ${Utils.escapeHtml(curso.nombre)}</div>
+                <div><strong>Area:</strong> ${curso.area || '-'}</div>
+                <div><strong>Nivel:</strong> ${curso.nivel}</div>
+                <div><strong>Duracion:</strong> ${curso.duracion_horas}h</div>
+                <div><strong>Cupo:</strong> ${curso.cupo_maximo}</div>
+                <div><strong>Inicio:</strong> ${Utils.formatDate(curso.fecha_inicio)}</div>
+                <div><strong>Fin:</strong> ${Utils.formatDate(curso.fecha_fin)}</div>
+                <div><strong>Estado:</strong> <span class="badge badge--${curso.estado === 'En Curso' ? 'accent' : curso.estado === 'Planificado' ? 'primary' : 'neutral'}">${curso.estado}</span></div>
+                <div><strong>Inscritos:</strong> ${curso.total_inscritos || 0}</div>
+            </div>
+            <div style="margin-top:1rem"><strong>Descripcion:</strong><br>${Utils.escapeHtml(curso.descripcion) || 'Sin descripcion'}</div>
+            ${curso.nombre_facilitador ? `<div style="margin-top:1rem"><strong>Facilitador:</strong> ${Utils.escapeHtml(curso.nombre_facilitador)}</div>` : ''}
+        `;
+        Modal.open(content, { title: 'Detalle del Curso', footer: '<button class="btn btn--ghost" onclick="Modal.close()">Cerrar</button>' });
+    } catch (err) { Toast.show(err.message, 'error'); }
+}
+
+function deleteCourse(id) {
+    ConfirmDialog.open('Eliminar este curso?', async () => {
+        try { await API.delete('curso', id); Toast.show('Curso eliminado', 'success'); loadCursos(); }
+        catch (err) { Toast.show(err.message, 'error'); }
+    });
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+</script>
+
+</body>
+</html>

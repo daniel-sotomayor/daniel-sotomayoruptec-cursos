@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Estudiantes - Facilitador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Mis Estudiantes</h1>
+            <div class="header__actions">
+                <div class="header__search">
+                    <svg class="header__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="header__search-input" placeholder="Buscar..." id="search-input">
+                </div>
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Estudiantes por Curso</h2>
+                    <p class="content__subtitle">Visualiza los estudiantes inscritos en tus cursos</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap items-end">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Curso</label>
+                            <select class="form-select" id="filter-curso" style="width: 280px;" onchange="loadEstudiantes()">
+                                <option value="">Selecciona un curso</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="estudiantes-container">
+                <div class="empty-state">
+                    <div class="empty-state__icon">📚</div>
+                    <div class="empty-state__title">Selecciona un curso</div>
+                    <div class="empty-state__text">Elige un curso del menu para ver los estudiantes inscritos</div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let cursosList = [];
+
+(async function() {
+    await initDashboard();
+    await loadCursos();
+
+    // Si viene con parametro ?curso=X en URL
+    const params = new URLSearchParams(window.location.search);
+    const cursoId = params.get('curso');
+    if (cursoId) {
+        document.getElementById('filter-curso').value = cursoId;
+        loadEstudiantes();
+    }
+})();
+
+async function loadCursos() {
+    try {
+        const data = await API.get('mis-cursos');
+        cursosList = data.cursos || [];
+        const select = document.getElementById('filter-curso');
+        cursosList.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.codigo} - ${c.nombre}`;
+            select.appendChild(opt);
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadEstudiantes() {
+    const cursoId = document.getElementById('filter-curso').value;
+    const container = document.getElementById('estudiantes-container');
+
+    if (!cursoId) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📚</div><div class="empty-state__title">Selecciona un curso</div></div>';
+        return;
+    }
+
+    container.innerHTML = '<div class="skeleton" style="height: 300px;"></div>';
+
+    try {
+        const data = await API.get('estudiantes-curso', { id: cursoId });
+        renderEstudiantes(data);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderEstudiantes(data) {
+    const container = document.getElementById('estudiantes-container');
+    const estudiantes = data.estudiantes || [];
+    const plan = data.plan_evaluacion || [];
+
+    if (!estudiantes.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No hay estudiantes inscritos</div></div>';
+        return;
+    }
+
+    // Mostrar plan de evaluacion
+    let planHtml = '';
+    if (plan.length) {
+        planHtml = `<div style="margin-bottom: 1.5rem;"><h4 style="font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.5rem;">Plan de Evaluacion</h4><div class="d-flex gap-2 flex-wrap">${plan.map(p => `<span class="badge badge--primary">${Utils.escapeHtml(p.nombre)} (${p.peso}%)</span>`).join('')}</div></div>`;
+    }
+
+    // Tabla de estudiantes con calificaciones
+    let tableHtml = `<div class="table-container"><table class="table"><thead><tr><th>Estudiante</th><th>Cedula</th><th>Estado</th>`;
+    plan.forEach(p => { tableHtml += `<th style="text-align:center">${Utils.escapeHtml(p.nombre)}</th>`; });
+    tableHtml += `<th style="text-align:center">Nota Final</th></tr></thead><tbody>`;
+
+    estudiantes.forEach(est => {
+        tableHtml += `<tr><td><strong>${Utils.escapeHtml(est.nombre_estudiante)}</strong><br><small>${est.correo}</small></td>`;
+        tableHtml += `<td>${est.cedula}</td>`;
+        tableHtml += `<td><span class="badge ${est.estado === 'Completado' ? 'badge--accent' : est.estado === 'En Progreso' ? 'badge--primary' : 'badge--neutral'}">${est.estado}</span></td>`;
+
+        plan.forEach(p => {
+            const cal = (est.calificaciones || []).find(c => c.tipo_evaluacion === p.tipo);
+            tableHtml += `<td style="text-align:center">${cal ? `<span class="badge ${cal.nota >= 10 ? 'badge--accent' : 'badge--warning'}">${cal.nota}</span>` : '<span class="badge badge--neutral">-</span>'}</td>`;
+        });
+
+        tableHtml += `<td style="text-align:center">${est.nota_final ? `<span class="badge ${est.nota_final >= 10 ? 'badge--accent' : 'badge--danger'}" style="font-size:1rem">${est.nota_final}</span>` : '<span class="badge badge--neutral">-</span>'}</td></tr>`;
+    });
+
+    tableHtml += '</tbody></table></div>';
+
+    container.innerHTML = planHtml + tableHtml;
+}
+</script>
+
+</body>
+</html>

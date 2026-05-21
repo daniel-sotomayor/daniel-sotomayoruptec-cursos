@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Calificaciones - Administrador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Calificaciones del Sistema</h1>
+            <div class="header__actions">
+                <div class="header__search">
+                    <svg class="header__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="header__search-input" placeholder="Buscar calificacion..." id="search-input">
+                </div>
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Todas las Calificaciones</h2>
+                    <p class="content__subtitle">Visualiza y administra las calificaciones de todos los cursos</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Curso</label>
+                            <select class="form-select" id="filter-curso" style="width: 220px;" onchange="loadCalificaciones()">
+                                <option value="">Todos los cursos</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Tipo</label>
+                            <select class="form-select" id="filter-tipo" style="width: 160px;" onchange="loadCalificaciones()">
+                                <option value="">Todos</option>
+                                <option value="Parcial">Parcial</option>
+                                <option value="Final">Final</option>
+                                <option value="Proyecto">Proyecto</option>
+                                <option value="Asistencia">Asistencia</option>
+                                <option value="Trabajo">Trabajo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="calificaciones-table">
+                <div class="skeleton" style="height: 300px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let currentCalificaciones = [];
+let cursosList = [];
+
+(async function() {
+    await initDashboard();
+    await loadCursos();
+    loadCalificaciones();
+    document.getElementById('search-input').addEventListener('input', debounce(() => loadCalificaciones(), 300));
+})();
+
+async function loadCursos() {
+    try {
+        const data = await API.get('cursos');
+        cursosList = data.cursos || [];
+        const select = document.getElementById('filter-curso');
+        cursosList.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.codigo} - ${c.nombre}`;
+            select.appendChild(opt);
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadCalificaciones() {
+    Loading.show('calificaciones-table');
+    try {
+        const buscar = document.getElementById('search-input').value;
+        const cursoId = document.getElementById('filter-curso').value;
+        const tipo = document.getElementById('filter-tipo').value;
+        const data = await API.get('calificaciones', { buscar, curso_id: cursoId, tipo });
+        currentCalificaciones = data.calificaciones || [];
+        renderCalificaciones(currentCalificaciones);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderCalificaciones(notas) {
+    DataTable.render('calificaciones-table', notas, [
+        { label: 'Estudiante', key: 'nombre_estudiante', format: (v) => `<strong>${Utils.escapeHtml(v)}</strong>` },
+        { label: 'Curso', key: 'nombre_curso', format: (v, r) => `<small>${Utils.escapeHtml(v)}<br>${r.codigo_curso}</small>` },
+        { label: 'Evaluacion', key: 'tipo_evaluacion', format: (v, r) => `<strong>${v}</strong>${r.descripcion ? '<br><small>' + Utils.escapeHtml(r.descripcion) + '</small>' : ''}` },
+        { label: 'Nota', key: 'nota', format: (v) => `<span class="badge ${v >= 10 ? 'badge--accent' : v >= 1 ? 'badge--warning' : 'badge--danger'}" style="font-size:0.9375rem">${v}</span>` },
+        { label: 'Peso', key: 'peso', format: (v) => `${v}%` },
+        { label: 'Fecha', key: 'fecha_evaluacion', format: (v) => `<small>${Utils.formatDate(v)}</small>` }
+    ], {
+        actions: [
+            { icon: '🗑️', title: 'Eliminar', class: 'btn btn--sm btn--danger', onClick: (row) => `deleteCalificacion(${row.id})` }
+        ]
+    });
+}
+
+function deleteCalificacion(id) {
+    ConfirmDialog.open('Eliminar esta calificacion?', async () => {
+        try { await API.delete('calificacion', id); Toast.show('Calificacion eliminada', 'success'); loadCalificaciones(); }
+        catch (err) { Toast.show(err.message, 'error'); }
+    });
+}
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+</script>
+
+</body>
+</html>

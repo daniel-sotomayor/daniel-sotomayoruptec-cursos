@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Mis Notas - Participante | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Mis Calificaciones</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Mis Notas y Plan de Evaluacion</h2>
+                    <p class="content__subtitle">Consulta tus calificaciones detalladas por curso</p>
+                </div>
+                <button class="btn btn--primary" onclick="descargarNotasPDF()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Descargar PDF
+                </button>
+            </div>
+
+            <div id="notas-container">
+                <div class="skeleton" style="height: 400px;"></div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+(async function() {
+    await initDashboard();
+    loadNotas();
+})();
+
+async function loadNotas() {
+    Loading.show('notas-container');
+    try {
+        const data = await API.get('mis-notas');
+        renderNotas(data.inscripciones || []);
+    } catch (err) {
+        Toast.show('Error: ' + err.message, 'error');
+    }
+}
+
+function renderNotas(inscripciones) {
+    const container = document.getElementById('notas-container');
+    if (!inscripciones.length) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state__icon">📭</div><div class="empty-state__title">No tienes notas registradas</div><div class="empty-state__text">Inscribete en un curso para comenzar</div></div>';
+        return;
+    }
+
+    container.innerHTML = inscripciones.map(insc => {
+        const estadoBadge = { 'Inscrito': 'badge--primary', 'En Progreso': 'badge--accent', 'Completado': 'badge--accent', 'Reprobado': 'badge--danger' };
+
+        // Plan de evaluacion vs calificaciones reales
+        const planRows = (insc.plan_evaluacion || []).map(eva => {
+            const cal = (insc.calificaciones || []).find(c => c.tipo_evaluacion === eva.tipo && c.descripcion?.includes(eva.nombre));
+            return {
+                nombre: eva.nombre,
+                tipo: eva.tipo,
+                peso: eva.peso,
+                fecha: eva.fecha_evaluacion,
+                nota: cal ? cal.nota : null,
+                tieneNota: !!cal
+            };
+        });
+
+        // Calificaciones que no estan en el plan
+        const otrasNotas = (insc.calificaciones || []).filter(c => !planRows.some(p => p.tieneNota && p.nombre === c.descripcion));
+
+        return `
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card__header">
+                <div>
+                    <h3 class="card__title">${Utils.escapeHtml(insc.codigo)} - ${Utils.escapeHtml(insc.nombre)}</h3>
+                    <p style="color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                        ${insc.area || ''} | Facilitador: ${Utils.escapeHtml(insc.nombre_facilitador || 'N/A')}
+                    </p>
+                </div>
+                <div style="text-align: right;">
+                    <span class="badge ${estadoBadge[insc.estado] || 'badge--neutral'}">${insc.estado}</span>
+                    ${insc.nota_final ? `<div style="margin-top: 0.5rem; font-size: 1.5rem; font-weight: 700; color: ${insc.nota_final >= 10 ? 'var(--color-accent)' : 'var(--color-danger)'}">${insc.nota_final}</div>` : ''}
+                </div>
+            </div>
+            <div class="card__body" style="padding: 0;">
+                ${planRows.length ? `
+                <div style="padding: 1rem 1.5rem;">
+                    <h4 style="font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.75rem;">Plan de Evaluacion</h4>
+                    <div class="table-container"><table class="table">
+                        <thead><tr><th>Evaluacion</th><th>Tipo</th><th>Peso</th><th>Nota</th><th>Fecha</th></tr></thead>
+                        <tbody>
+                            ${planRows.map(p => `
+                                <tr>
+                                    <td><strong>${Utils.escapeHtml(p.nombre)}</strong></td>
+                                    <td><span class="badge badge--neutral">${p.tipo}</span></td>
+                                    <td>${p.peso}%</td>
+                                    <td>${p.nota !== null ? `<span class="badge ${p.nota >= 10 ? 'badge--accent' : 'badge--warning'}" style="font-size:0.9375rem">${p.nota}</span>` : '<span class="badge badge--neutral">Pendiente</span>'}</td>
+                                    <td><small>${Utils.formatDate(p.fecha)}</small></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table></div>
+                </div>` : ''}
+
+                ${otrasNotas.length ? `
+                <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--color-border-light);">
+                    <h4 style="font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-muted); margin-bottom: 0.75rem;">Otras Calificaciones</h4>
+                    <div class="table-container"><table class="table">
+                        <thead><tr><th>Tipo</th><th>Descripcion</th><th>Nota</th><th>Fecha</th></tr></thead>
+                        <tbody>
+                            ${otrasNotas.map(n => `
+                                <tr>
+                                    <td><span class="badge badge--neutral">${n.tipo_evaluacion}</span></td>
+                                    <td>${Utils.escapeHtml(n.descripcion || '-')}</td>
+                                    <td><span class="badge ${n.nota >= 10 ? 'badge--accent' : 'badge--warning'}" style="font-size:0.9375rem">${n.nota}</span></td>
+                                    <td><small>${Utils.formatDate(n.fecha_evaluacion)}</small></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table></div>
+                </div>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function descargarNotasPDF() {
+    try {
+        Toast.show('Generando PDF...', 'info');
+        await API.download('mis-notas-pdf', {}, `mis-notas.pdf`);
+        Toast.show('PDF descargado exitosamente', 'success');
+    } catch (err) {
+        Toast.show('Error al descargar PDF: ' + err.message, 'error');
+    }
+}
+</script>
+
+</body>
+</html>

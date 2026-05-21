@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="">
+    <title>Calificaciones - Facilitador | UPTEC Cursos</title>
+    <link rel="stylesheet" href="../../../frontend/css/main.css">
+</head>
+<body>
+
+<div class="layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <main class="main">
+        <header class="header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h1 class="header__title">Registro de Calificaciones</h1>
+            <div class="header__actions">
+                <div class="header__user">
+                    <div class="header__user-avatar" id="header-avatar"></div>
+                    <div class="header__user-info">
+                        <span class="header__user-name" id="header-user"></span>
+                        <span class="header__user-role" id="header-role"></span>
+                    </div>
+                </div>
+                <button class="header__logout" id="logout-btn" title="Cerrar Sesion">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="content">
+            <div class="content__header">
+                <div>
+                    <h2 class="content__title">Calificaciones</h2>
+                    <p class="content__subtitle">Registra y gestiona las notas de tus estudiantes</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <div class="card__body" style="padding: 1rem 1.5rem;">
+                    <div class="d-flex gap-4 flex-wrap items-end">
+                        <div>
+                            <label class="form-label" style="font-size: 0.8125rem;">Curso</label>
+                            <select class="form-select" id="filter-curso" style="width: 240px;" onchange="loadCalificaciones()">
+                                <option value="">Todos mis cursos</option>
+                            </select>
+                        </div>
+                        <button class="btn btn--primary" onclick="openNotaModal()">+ Nueva Calificacion</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="calificaciones-table"><div class="skeleton" style="height: 300px;"></div></div>
+        </div>
+    </main>
+</div>
+
+<script src="../../../frontend/js/api.js"></script>
+<script src="../../../frontend/js/auth.js"></script>
+<script src="../../../frontend/js/dashboard.js"></script>
+<script>
+let cursosList = [];
+
+(async function() {
+    await initDashboard();
+    await loadCursos();
+    loadCalificaciones();
+})();
+
+async function loadCursos() {
+    try {
+        const data = await API.get('mis-cursos');
+        cursosList = data.cursos || [];
+        const select = document.getElementById('filter-curso');
+        cursosList.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.codigo} - ${c.nombre}`;
+            select.appendChild(opt);
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadCalificaciones() {
+    Loading.show('calificaciones-table');
+    try {
+        const cursoId = document.getElementById('filter-curso').value;
+        const data = await API.get('calificaciones', cursoId ? { curso_id: cursoId } : {});
+        renderCalificaciones(data.calificaciones || []);
+    } catch (err) { Toast.show('Error: ' + err.message, 'error'); }
+}
+
+function renderCalificaciones(notas) {
+    DataTable.render('calificaciones-table', notas, [
+        { label: 'Estudiante', key: 'nombre_estudiante', format: (v) => `<strong>${Utils.escapeHtml(v)}</strong>` },
+        { label: 'Curso', key: 'nombre_curso', format: (v, r) => `<small>${Utils.escapeHtml(v)}<br>${r.codigo_curso}</small>` },
+        { label: 'Evaluacion', key: 'tipo_evaluacion', format: (v, r) => `<strong>${v}</strong>${r.descripcion ? '<br><small>' + Utils.escapeHtml(r.descripcion) + '</small>' : ''}` },
+        { label: 'Nota', key: 'nota', format: (v) => `<span class="badge ${v >= 10 ? 'badge--accent' : v >= 1 ? 'badge--warning' : 'badge--danger'}" style="font-size:0.9375rem">${v}</span>` },
+        { label: 'Peso', key: 'peso', format: (v) => `${v}%` },
+        { label: 'Fecha', key: 'fecha_evaluacion', format: (v) => `<small>${Utils.formatDate(v)}</small>` }
+    ]);
+}
+
+function openNotaModal() {
+    const cursoOptions = cursosList.map(c => `<option value="${c.id}">${c.codigo} - ${Utils.escapeHtml(c.nombre)}</option>`).join('');
+    const content = `
+        <form id="nota-form">
+            <div class="form-group">
+                <label class="form-label form-label--required">Curso</label>
+                <select class="form-select" id="nota-curso" onchange="loadEstudiantesCurso()" required>
+                    <option value="">Selecciona un curso</option>${cursoOptions}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label form-label--required">Estudiante (Inscripcion)</label>
+                <select class="form-select" id="nota-inscripcion" required><option value="">Primero selecciona un curso</option></select>
+            </div>
+            <div class="d-grid grid--2 gap-3">
+                <div class="form-group">
+                    <label class="form-label form-label--required">Tipo</label>
+                    <select class="form-select" id="nota-tipo">
+                        <option value="Parcial">Parcial</option>
+                        <option value="Final">Final</option>
+                        <option value="Proyecto">Proyecto</option>
+                        <option value="Asistencia">Asistencia</option>
+                        <option value="Trabajo">Trabajo</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label form-label--required">Nota (0-20)</label>
+                    <input type="number" id="nota-valor" class="form-input" min="0" max="20" step="0.01" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Descripcion</label>
+                <input type="text" id="nota-descripcion" class="form-input" placeholder="Descripcion de la evaluacion">
+            </div>
+            <div class="d-grid grid--2 gap-3">
+                <div class="form-group">
+                    <label class="form-label">Peso (%)</label>
+                    <input type="number" id="nota-peso" class="form-input" value="100" min="0" max="100" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" id="nota-fecha" class="form-input" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Observaciones</label>
+                <textarea id="nota-obs" class="form-textarea" rows="2"></textarea>
+            </div>
+        </form>
+    `;
+    const footer = `<button class="btn btn--ghost" onclick="Modal.close()">Cancelar</button><button class="btn btn--primary" onclick="saveNota()">Guardar</button>`;
+    Modal.open(content, { title: 'Nueva Calificacion', footer });
+}
+
+async function loadEstudiantesCurso() {
+    const cursoId = document.getElementById('nota-curso').value;
+    const select = document.getElementById('nota-inscripcion');
+    if (!cursoId) { select.innerHTML = '<option>Selecciona un curso</option>'; return; }
+
+    try {
+        const data = await API.get('estudiantes-curso', { id: cursoId });
+        const estudiantes = data.estudiantes || [];
+        select.innerHTML = estudiantes.map(e => `<option value="${e.inscripcion_id}">${Utils.escapeHtml(e.nombre_estudiante)} (${e.cedula})</option>`).join('');
+    } catch (e) { select.innerHTML = '<option>Error cargando</option>'; }
+}
+
+async function saveNota() {
+    const data = {
+        inscripcion_id: document.getElementById('nota-inscripcion').value,
+        tipo_evaluacion: document.getElementById('nota-tipo').value,
+        nota: document.getElementById('nota-valor').value,
+        descripcion: document.getElementById('nota-descripcion').value,
+        peso: document.getElementById('nota-peso').value,
+        fecha_evaluacion: document.getElementById('nota-fecha').value,
+        observaciones: document.getElementById('nota-obs').value
+    };
+    if (!data.inscripcion_id || !data.nota) { Toast.show('Complete los campos requeridos', 'warning'); return; }
+    try {
+        await API.post('calificacion', data);
+        Toast.show('Calificacion registrada', 'success');
+        Modal.close(); loadCalificaciones();
+    } catch (err) { Toast.show(err.message, 'error'); }
+}
+</script>
+
+</body>
+</html>
