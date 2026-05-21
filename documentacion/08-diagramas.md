@@ -4,6 +4,8 @@
 
 El sistema está diseñado como una aplicación web monolítica modular con separación clara entre frontend, API, lógica de negocio y acceso a datos.
 
+![Arquitectura General](./diagrams/architecture.png)
+
 ```mermaid
 graph TB
     subgraph Frontend
@@ -36,6 +38,8 @@ graph TB
 ## 2. Diagrama Entidad-Relación (ER)
 
 Este diagrama muestra las entidades principales y sus relaciones en la base de datos.
+
+![Diagrama Entidad-Relación](./diagrams/er-diagram.png)
 
 ```mermaid
 erDiagram
@@ -136,6 +140,8 @@ erDiagram
 
 ## 3. Flujo de Autenticación y Autorización
 
+![Flujo de Autenticación](./diagrams/auth-flow.png)
+
 ```mermaid
 sequenceDiagram
     participant User as Usuario
@@ -155,6 +161,8 @@ sequenceDiagram
 ```
 
 ## 4. Flujo de Inscripción a Curso
+
+![Flujo de Inscripción](./diagrams/inscripcion-flow.png)
 
 ```mermaid
 sequenceDiagram

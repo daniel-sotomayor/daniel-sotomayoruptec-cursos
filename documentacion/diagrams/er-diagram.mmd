@@ -1,0 +1,94 @@
+erDiagram
+    USUARIOS {
+        INT id PK
+        VARCHAR cedula
+        VARCHAR nombre
+        VARCHAR apellidos
+        VARCHAR correo
+        VARCHAR telefono
+        VARCHAR password
+        ENUM rol
+        VARCHAR area
+        TINYINT activo
+        DATETIME ultimo_acceso
+    }
+    CURSOS {
+        INT id PK
+        VARCHAR codigo
+        VARCHAR nombre
+        TEXT descripcion
+        INT duracion_horas
+        DATE fecha_inicio
+        DATE fecha_fin
+        INT cupo_maximo
+        VARCHAR area
+        ENUM nivel
+        ENUM estado
+        INT facilitador_id
+        INT analista_id
+    }
+    EVALUACIONES {
+        INT id PK
+        INT curso_id
+        VARCHAR nombre
+        ENUM tipo
+        INT peso
+        DATE fecha_evaluacion
+        INT orden
+    }
+    INSCRIPCIONES {
+        INT id PK
+        INT usuario_id
+        INT curso_id
+        DATE fecha_inscripcion
+        ENUM estado
+        DECIMAL nota_final
+        TEXT observaciones
+    }
+    CALIFICACIONES {
+        INT id PK
+        INT inscripcion_id
+        INT evaluacion_id
+        DECIMAL nota
+        INT peso
+        DATE fecha_evaluacion
+        TEXT observaciones
+    }
+    HORARIOS {
+        INT id PK
+        INT curso_id
+        ENUM dia_semana
+        TIME hora_inicio
+        TIME hora_fin
+        VARCHAR aula
+    }
+    ASISTENCIAS {
+        INT id PK
+        INT inscripcion_id
+        DATE fecha
+        ENUM estado
+        TEXT observacion
+    }
+    LOGS_ACTIVIDAD {
+        BIGINT id PK
+        INT usuario_id
+        VARCHAR usuario_nombre
+        VARCHAR accion
+        VARCHAR tabla_afectada
+        INT registro_id
+        JSON datos_anteriores
+        JSON datos_nuevos
+        VARCHAR ip_address
+        VARCHAR user_agent
+        DATETIME fecha_hora
+    }
+
+    USUARIOS ||--o{ CURSOS : "asigna"
+    USUARIOS ||--o{ CURSOS : "supervisa"
+    CURSOS ||--o{ EVALUACIONES : "tiene"
+    CURSOS ||--o{ INSCRIPCIONES : "recibe"
+    INSCRIPCIONES ||--o{ CALIFICACIONES : "registra"
+    CURSOS ||--o{ HORARIOS : "programa"
+    INSCRIPCIONES ||--o{ ASISTENCIAS : "genera"
+    USUARIOS ||--o{ INSCRIPCIONES : "inscribe"
+    USUARIOS ||--o{ LOGS_ACTIVIDAD : "registra"

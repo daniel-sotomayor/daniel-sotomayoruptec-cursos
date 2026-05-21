@@ -24,9 +24,13 @@ Consulta `documentacion/README.md` para ver todos los documentos disponibles:
 - Roles y permisos
 - Instalación
 - Frontend
-- Manuales de usuario
 - Diagramas del sistema
 - Plan de pruebas
+- Despliegue
+
+## Presentación del proyecto
+
+**UPTEC Cursos** es un sistema web completo para la gestión académica de cursos, inscripciones, calificaciones y reportes. Está diseñado para un entorno universitario con control de roles, seguridad y auditoría.
 
 ## Cómo comenzar
 

@@ -171,7 +171,9 @@
             const items = menus[rol] || [];
             let html = `
                 <div class="sidebar__brand">
-                    <div class="sidebar__brand-icon">frontend\img\logo-uptec-grande.png</div>
+                    <div class="sidebar__brand-icon">
+                        <img src="../../../frontend/img/logo-uptec-grande.png" alt="UPTEC Cursos" />
+                    </div>
                     <div>
                         <div class="sidebar__brand-text">UPTEC</div>
                         <div class="sidebar__brand-sub">Cursos</div>

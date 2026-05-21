@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant Participante
+    participant Frontend
+    participant API
+    participant Cursos
+    participant Inscripcion
+
+    Participante->>Frontend: solicita cursos disponibles
+    Frontend->>API: GET /api.php?endpoint=cursos_disponibles
+    API->>Cursos: consulta cursos abiertos
+    Cursos-->>API: lista de cursos
+    API-->>Frontend: responde con cursos
+    Frontend->>Participante: muestra cursos
+    Participante->>Frontend: elige curso y confirma
+    Frontend->>API: POST /api.php?endpoint=inscribir
+    API->>Inscripcion: crea registro
+    Inscripcion-->>API: estado creado
+    API-->>Frontend: confirma inscripción

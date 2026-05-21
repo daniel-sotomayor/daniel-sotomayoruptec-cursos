@@ -1,0 +1,26 @@
+graph TB
+    subgraph Frontend
+      A["index.html / login.html"]
+      B["views/{rol}/ dashboard pages"]
+      C["js/api.js, js/auth.js, js/dashboard.js"]
+    end
+
+    subgraph Backend
+      D["backend/api/api.php"]
+      E["backend/api/*.php endpoints"]
+      F["backend/security/*"]
+      G["backend/db/config.php"]
+    end
+
+    subgraph Database
+      H["MySQL db schema.sql"]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    E --> G
+    G --> H
+    F --> G

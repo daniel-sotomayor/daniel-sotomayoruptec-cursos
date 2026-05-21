@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant User as Usuario
+    participant Front as Frontend
+    participant API as API
+    participant Auth as Auth Layer
+    participant DB as Base de Datos
+
+    User->>Front: introduce credenciales
+    Front->>API: POST /api.php?endpoint=login
+    API->>Auth: validar request + CSRF
+    Auth->>DB: consultar usuario
+    DB-->>Auth: devolver hash
+    Auth-->>API: autenticar / crear sesión
+    API-->>Front: respuesta con rol
+    Front-->>User: redirigir dashboard
